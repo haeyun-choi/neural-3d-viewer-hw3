@@ -74,7 +74,7 @@ Within a seed every condition sees the same batches and augmentation, and E0/E1/
 Decision rule written in advance: \emph{supported} only if E2 beats both E0 and E3 by $\ge$0.5\,pp (HW2 seed SD $\approx$0.6\,pp; one test object $=$ 0.11\,pp) and the critical-pair errors fall.
 
 \section{Results (post-experiment observations)}
-\textbf{Reproducibility:} E0 reproduces the stored HW2 runs \emph{exactly} (93.61 / 92.29 / 92.40\%, same selected epochs), so differences come from the change or from seed variability.
+\textbf{Verdict: the hypothesis is not supported.} Implementation and training completed normally; E0 reproduces the stored HW2 runs \emph{exactly} (93.61 / 92.29 / 92.40\%, same selected epochs), so differences between conditions reflect the change or seed variability, not environment drift.
 
 \begin{center}\small
 \setlength{\tabcolsep}{4pt}
@@ -89,39 +89,42 @@ E2 gated dual (ours) & 88{,}922 & 97.49 & \textbf{92.77}\,$\pm$\,0.32 & 16.7 & 4
 E3 max pool, $h{=}69$ & 88{,}537 & 97.41 & \textbf{91.81}\,$\pm$\,0.34 & 19.7 & 4.3 & 15.7 & 12.0 & 89.24\,$\pm$\,0.81\\
 \bottomrule
 \end{tabular}\\[1pt]
-{\footnotesize Mean (\,$\pm$\,SD) over 3 seeds, \%; error columns are test objects (mean over seeds).}
+{\footnotesize Table 1: mean (\,$\pm$\,SD) over 3 seeds, \%; error columns are test objects (mean over seeds); last column: exploratory evaluation with 256 points per object.}
 \end{center}
 \vspace{-4pt}
-\includegraphics[width=\linewidth]{report_figure.png}
-\vspace{-12pt}
+\includegraphics[width=\linewidth]{report_figure.png}\\[-2pt]
+{\footnotesize Figure 1: (a) test accuracy of every run; (b) E2's mean gate per channel, sorted (0 = max, 1 = mean pooling); (c) the same checkpoints evaluated on fixed 512/256-point subsets (exploratory).\par}
+\vspace{-2pt}
 
+\textbf{Confirmatory} (decision rules fixed in advance):
 \begin{itemize}
-\item \textbf{Main hypothesis not supported.} Paired by seed, E2$-$E0 $=-0.44,+0.11,+0.33$\,pp (mean \textbf{+0.00}; exact McNemar $p=0.57,1.00,0.61$); E1$-$E0 $=-0.11$\,pp; E2$-$E1 $=+0.11$\,pp. The four critical errors did not fall (42.7$\to$44.7): E2 \emph{moved} the dresser/night-stand boundary ($-$2.7 / $+$4.0) instead of separating the pair. E3 is \emph{worse} than E0 ($-0.95$\,pp, 0/3 seeds), so capacity explains nothing and E2's +0.95\,pp over E3 is E3's deficit.
-\item \textbf{The gate is used, but as a static channel split.} From 0.119 it became bimodal (b): 52--83 of 256 channels average $g>0.5$, while 43--62\% of gate values fell \emph{below} 0.1 toward pure max (weight decay, which pulls $g$ toward 0.5, cannot cause this split). Yet a channel's gate barely varies across objects (SD 0.006--0.017 vs.\ 0.27--0.42 across channels) and class means differ by $<$0.01: the SENet-style \emph{per-object} recalibration was not learned.
-\item \textbf{A different, real benefit} (pre-registered secondary prediction): with 256 points per object E2 loses 2.0\,pp versus 3.2\,pp for E0, better in all 3 seeds (c) --- a max over fewer points shrinks, a mean does not. Gradient check: mean pooling reaches 100\% of points (max: 13\%), but the argmax points still carry 91--96\% of the per-point gradient norm.
+\item \textbf{No clean-accuracy gain.} Paired by seed, E2$-$E0 $=-0.44,+0.11,+0.33$\,pp (mean \textbf{+0.00}); exact two-sided McNemar test on the same 908 test objects, one test per seed (seeds never pooled): $p=0.57, 1.00, 0.61$. E1$-$E0 $=-0.11$\,pp; E2$-$E1 $=+0.11$\,pp. E3 performed \emph{worse} ($-0.95$\,pp, 3/3 seeds), so added parameters alone did not help.
+\item \textbf{Errors redistributed, not reduced.} E2 lowered dresser$\to$night stand (11.0$\to$8.3) but raised night stand$\to$dresser (11.3$\to$15.3); E1 lowered table$\to$desk (16.0$\to$11.3) but no other direction. Four-direction total: E0 42.7, E1 40.0, E2 44.7 --- no consistent reduction across seeds.
+\item \textbf{The learned gate did not behave as hypothesized.} Instead of an object-adaptive mixture, optimization produced a nearly static, bimodal channel split (b): from $g{=}0.119$, 52--83 of 256 channels moved toward mean pooling (mean $g>0.5$) and 110--160 toward pure max (mean $g<0.1$); weight decay, which pulls $g$ toward 0.5, cannot produce this split. A channel's gate barely varies across objects (SD 0.006--0.017 vs.\ 0.27--0.42 across channels) and class means differ by $<$0.01. What failed is the adaptive-mixture hypothesis, not the implementation.
 \end{itemize}
+\textbf{Exploratory} (not a confirmatory test): with one fixed 256-point subset per object, E2 scores 90.75\% vs.\ 89.61\% for E0, higher in each seed (c); a max over fewer points can only shrink, a mean does not. This suggests that the proposed pooling \emph{may} be more robust when fewer points are available.
 
 \section{Failure analysis and next experiment}
-\textbf{Why pooling could not fix the pairs.} A post-hoc probe (not pre-registered; no network) asks how well a single global cue separates each pair: the best threshold on one feature, chosen on the training pool, scored on the test split as balanced accuracy (50\% = chance).
+\textbf{Why pooling may not have helped these pairs.} A post-hoc probe (not pre-registered; no network, no retraining) asks how well a single global cue separates each pair: the best threshold on one feature, chosen on the training pool, scored on the test split as balanced accuracy (50\% = chance).
 \begin{center}\small
 \begin{tabular}{llrl}
 \toprule
-Pair & Cue & Test bal.\ acc. & Removed or blurred by\\
+Pair & Cue & Test bal.\ acc. & Affected by\\
 \midrule
 dresser vs.\ night stand & absolute height (raw mesh units) & \textbf{85.5\%} & normalisation (never in the input)\\
-dresser vs.\ night stand & depth/width ratio & 81.4\% $\to$ \textbf{73.3\%} & per-axis scale augmentation\\
+dresser vs.\ night stand & depth/width ratio & 81.4\% $\to$ \textbf{73.3\%} & per-axis scale augmentation (training)\\
 table vs.\ desk & any size or bounding-box ratio & 42--56\% & --- (not a global cue)\\
 \bottomrule
 \end{tabular}
 \end{center}
 \vspace{-3pt}
-For dresser/night stand, absolute height alone is almost as good as the network's own within-pair accuracy ($\approx$87\%), and both strong cues are gone or blurred \emph{before} pooling, where no aggregator can recover them. For table/desk no global statistic helps: the difference is local structure (drawers, panels), which max pooling already targets, or label ambiguity. This matches what E2 did --- it learned to use mean statistics, yet the targeted errors did not move.
+Absolute size never reaches the network, so no aggregator can use it; the dresser/night-stand confusion is consistent with this, since absolute height alone is almost as good as the network's own within-pair accuracy ($\approx$87\%). The depth/width cue reaches the network at test time but is perturbed in training, which may teach the network to discount it. For table/desk no global statistic helps, which suggests local structure (drawers, panels) --- what max pooling already targets --- or label ambiguity. These are diagnostics consistent with, not proof of, the alternative explanations.
 
 \textbf{Alternative explanations kept open.} Seed variability is large: paired runs that differ only in pooling still flip 15--39 test objects, so three seeds resolve about 1\,pp, not 0.1\,pp, and E3 shows that changing initialisation and width alone moves the score by $\sim$1\,pp (HW2's 93.6\% seed~0 was a favourable draw). The gate may also need an input that truly varies per object (e.g.\ the normalisation radius) to become data-dependent.
 
 \textbf{Next controlled experiment.} \emph{E4}: E0 plus one scalar, $\log r$ (the normalisation radius, i.e.\ absolute size), concatenated to the pooled feature (+128 parameters), seeds 0--2, everything else fixed; primary outcome: dresser$\leftrightarrow$night-stand errors. Then \emph{E5}: isotropic scale augmentation (one factor for all axes) to test the augmentation explanation alone. Caveat: ModelNet sizes are per-model CAD units, and a size-aware model depends on the units of its inputs.
 
-\textbf{Lesson.} A well-motivated module can be learned, can be used, and can still leave the target errors unchanged. The controls (E1, E3), the gate statistics and a cheap probe located the bottleneck in the input pipeline rather than in aggregation --- and revealed a side benefit (robustness to sparse inputs) that the clean accuracy hides.
+\textbf{Lesson.} A well-motivated module can train correctly and still leave the target errors unchanged. The controls (E1, E3), the gate statistics and a cheap probe suggest that the limitation may lie in the input pipeline rather than in the aggregation, and pointed to a possible side effect (robustness to sparse inputs) that clean accuracy hides.
 
 {\footnotesize
 \textbf{References.}
@@ -129,6 +132,6 @@ For dresser/night stand, absolute height alone is almost as good as the network'
 [2] J.~Hu, L.~Shen, G.~Sun, Squeeze-and-Excitation Networks, CVPR 2018.
 [3] Z.~Wu et al., 3D ShapeNets (ModelNet), CVPR 2015.
 [4] C.~R.~Qi et al., PointNet, CVPR 2017.
-Code, all 12 runs, design record (committed before training) and full logs: repository \texttt{README.md}, \texttt{docs/hw3-design.md}, \texttt{docs/hw3-experiments.md}, \texttt{results/hw3/}.\par}
+Code, all 12 runs and logs: \texttt{README.md}, \texttt{docs/hw3-design.md} (committed before training), \texttt{docs/hw3-experiments.md}, \texttt{results/hw3/}.\par}
 
 \end{document}

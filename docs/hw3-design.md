@@ -294,6 +294,9 @@ Deviations from this plan, all procedural:
   how well absolute size and bounding-box aspect ratios separate the two
   confused pairs (`python -m app.classification.hw3 probe`). It is reported as
   post-hoc in every document and does not change any decision rule.
+- The point-count comparison of §8 (P1) is reported as **exploratory**: its
+  direction was predicted here, but it uses one fixed subset per point count and
+  is not a confirmatory test of robustness.
 - Everything else ran as specified: 4 conditions × 3 seeds, no reruns, no
   tuning, the test split scored once per run, the P1 diagnostics as defined in
   §8. Results and their reading against §9: [`hw3-experiments.md`](hw3-experiments.md).

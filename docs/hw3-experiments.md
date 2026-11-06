@@ -63,8 +63,15 @@ augmentation (per-axis scale U(0.8, 1.25), shift U(−0.1, 0.1), jitter
   night_stand→dresser, and their sum ("4-pair total").
 - **Paired difference**: for each seed, condition minus E0 (same batches and
   augmentation; for E1/E2 also the same initial shared weights and dropout stream).
-- **Exact McNemar test**: per seed, the test objects that only one of two runs
-  classifies correctly (*b*, *c*); two-sided p = min(1, 2·P[Bin(b+c, ½) ≤ min(b, c)]).
+- **Exact McNemar test**: computed **separately for each seed**, on the paired
+  predictions of two runs for the same 908 test objects (re-scored from the
+  saved checkpoints). *b*, *c* = objects that only one of the two runs
+  classifies correctly; two-sided p = min(1, 2·P[Bin(b+c, ½) ≤ min(b, c)]). This
+  is the exact binomial form, so no continuity correction applies; the
+  asymptotic χ² with continuity correction gives nearly the same values. The
+  three seeds are never concatenated (the same 908 objects recur in every
+  seed), and the p-values are not adjusted for multiple comparisons. An
+  independent re-implementation reproduced every count and p-value.
 - **Gate statistics (E2)**: `g` for every (object, channel) on the validation
   (798 × 256) and test (908 × 256) splits; mean, SD, min/max, quantiles,
   fractions below 0.1 / above 0.5 / above 0.9, per-channel means, the final
@@ -113,9 +120,10 @@ The E0 rerun reproduces the stored HW2 Mini-PointNet **exactly**: test accuracy
 93.61% / 92.29% / 92.40%, selected epochs 45 / 40 / 49 and validation accuracy
 97.74% / 97.74% / 97.62% for seeds 0 / 1 / 2, with identical per-epoch losses
 (spot-checked at epochs 1, 10, 20, 23). Same CPU model, thread count and
-package versions make the CPU computation deterministic, so every E1–E3 versus
-E0 difference below is caused by the change, plus the seed-to-seed training
-variability that the three seeds measure.
+package versions make the CPU computation deterministic, so the E1–E3 versus E0
+differences below reflect the change itself or the seed-to-seed training
+variability that the three seeds measure, not a drift in code, data or
+environment.
 
 ## Aggregate results (official test split, 908 objects)
 
@@ -136,13 +144,17 @@ stream with E0; E3 shares batches and augmentation):
 |---|---:|---|---:|---:|---|
 | E1 − E0 | −0.11 pp | −0.77, 0.00, +0.44 | 1/1 | −2.7 | 0.31, 1.00, 0.52 |
 | E2 − E0 | **+0.00 pp** | −0.44, +0.11, +0.33 | 2/1 | +2.0 | 0.57, 1.00, 0.61 |
-| E3 − E0 | −0.95 pp | −1.98, −0.77, −0.11 | 0/3 | +9.0 | 0.001, 0.35, 1.00 |
+| E3 − E0 | −0.95 pp | −1.98, −0.77, −0.11 | 0/3 | +9.0 | 0.0005, 0.35, 1.00 |
 | E2 − E1 | +0.11 pp | +0.33, +0.11, −0.11 | 2/1 | +4.7 | 0.76, 1.00, 1.00 |
 | E2 − E3 | +0.95 pp | +1.54, +0.88, +0.44 | 3/0 | −7.0 | 0.03, 0.28, 0.52 |
 
 Even with identical initial shared weights and identical batches, E2 and E0
 disagree on 28, 39 and 15 test objects (seeds 0–2); the accuracy differences
-are the small imbalance between two large sets of flips.
+are the small imbalance between two large sets of flips. Error redistribution
+within the confused pairs: E1 lowered table→desk (16.0 → 11.3) but none of the
+other three directions; E2 lowered dresser→night_stand (11.0 → 8.3) and raised
+night_stand→dresser (11.3 → 15.3). Four-direction total per seed: E0 38 / 44 /
+46, E1 37 / 44 / 39, E2 48 / 43 / 43 — no consistent reduction.
 
 Per-class test recall (mean over seeds), the four classes of interest:
 E0 desk 89.1%, table 84.0%, dresser 85.7%, night_stand 80.2%;
@@ -173,17 +185,24 @@ Initial gate 0.119 for every channel and object (`W₂ = 0`, `b₂ = −2`).
 Validation means agree with test within 0.002 and the fractions within 0.6 pp (see
 [`diagnostics.md`](../results/hw3/diagnostics.md)). Readings:
 
-1. **The gate did not stay at max pooling.** It became strongly bimodal:
-   20–32% of channels moved toward the mean (some to g > 0.9) while 43–62% of
-   (object, channel) values moved *below* the initial 0.119 toward pure max.
-   L2 weight decay pulls `b₂` toward 0 (g → 0.5) uniformly, so it cannot produce
-   this two-sided split; the channel specialisation is learned from the data.
-2. **The gate is almost not data-dependent.** For a given channel its value
-   varies across objects with SD 0.006–0.017, against 0.27–0.42 across channels,
-   and the per-class mean gate differs by less than 0.01 between classes
-   (seed 0: table 0.251, desk 0.254, dresser 0.259, night_stand 0.257). The
-   SENet-style *per-object* recalibration was not used; E2 learned a static
+The implementation and training worked as designed: the tests pass, every
+parameter receives finite gradients, and the gate moved far from its
+initialisation (‖W₂‖ 0 → 2.1–2.4). **The learned gate did not behave as
+hypothesized**, however:
+
+1. **Not an adaptive mixture but a bimodal channel split.** 52–83 of 256
+   channels (20–32%) moved toward mean pooling (channel mean g > 0.5; 6–62 of
+   them above 0.9), while 110–160 channels (43–63%) moved toward pure max
+   pooling (channel mean g < 0.1, below the initial 0.119). L2 weight decay pulls
+   `b₂` toward 0 (g → 0.5) uniformly, so it cannot produce this two-sided split.
+2. **Almost no object dependence.** For a given channel the gate varies across
+   objects with SD 0.006–0.017, against 0.27–0.42 across channels, and the
+   per-class mean gate differs by less than 0.01 between classes (seed 0:
+   table 0.251, desk 0.254, dresser 0.259, night_stand 0.257). The SENet-style
+   *per-object* recalibration did not emerge; E2 learned a nearly static
    per-channel max/mean mixture — in effect a learned version of E1.
+
+What failed is the adaptive-mixture hypothesis, not the implementation.
 
 Figure: [`gates.png`](../results/hw3/gates.png).
 
@@ -214,10 +233,13 @@ magnitude.
 | E2 | 92.77 ± 0.32 | 91.92 ± 0.32 | **90.75 ± 0.18** | 44.7 / 45.7 / 48.3 |
 | E3 | 91.81 ± 0.34 | 91.19 ± 0.50 | 89.24 ± 0.81 | 51.7 / 50.0 / 61.3 |
 
-Per seed at 256 points, E2 − E0 = +1.21, +1.98, +0.22 pp (3/3 seeds). This was
-the pre-registered secondary prediction (design §8): a channel max over fewer
-points can only shrink, while a mean is unbiased. E2 loses 2.0 pp from 1,024 to
-256 points, E0 3.2 pp. One fixed subset per point count was evaluated.
+**Exploratory.** Per seed at 256 points, E2 − E0 = +1.21, +1.98, +0.22 pp
+(higher in 3/3 seeds); E2 loses 2.0 pp from 1,024 to 256 points, E0 3.2 pp. The
+direction was stated beforehand as a secondary prediction (design §8: a
+channel max over fewer points can only shrink, a mean does not), but only one
+fixed subset per point count was evaluated, with three seeds and no repeated
+subsampling. Exploratory evidence therefore suggests — and does not establish —
+that the proposed pooling may be more robust when fewer points are available.
 Figure: [`robustness.png`](../results/hw3/robustness.png).
 
 ## Post-hoc probe of the alternative explanations (not pre-registered)
@@ -245,14 +267,19 @@ training and test features.
   the object's absolute height in file units (dressers ≈ 1.5× taller on average)
   — separates the pair with 85.5% balanced accuracy, close to the network's own
   within-pair balanced accuracy (E0 ≈ 87%: 11.0 and 11.3 of 86 objects confused).
-  The best proportion cue (depth/width) loses 8 points of balanced accuracy
-  under the training augmentation. Both cues are removed or blurred *before*
-  pooling, so no aggregation change can restore them.
+  Absolute size never reaches the network, so no aggregation can use it; the
+  dresser/night_stand confusion is consistent with this. The best proportion cue
+  (depth/width) loses 8 points of balanced accuracy under the training
+  augmentation; it does reach the network at test time, but the training
+  augmentation may teach the network to discount it.
 - **table vs desk:** neither size nor bounding-box proportions separate the
   pair on the test split (≈ chance), and the train-pool differences do not
-  transfer to the test split. The distinction, where it exists, is local
-  structure (drawers, side or modesty panels) — what max pooling already
-  captures — or label ambiguity.
+  transfer to the test split. This suggests that the distinction, where it
+  exists, is local structure (drawers, side or modesty panels) — what max
+  pooling already targets — or label ambiguity.
+
+These probes are post-hoc diagnostics without retraining; they are consistent
+with, but do not prove, the alternative explanations.
 
 ## Interpretation against the pre-registered rules
 
@@ -261,18 +288,21 @@ training and test features.
 | E2 − E0 ≥ +0.5 pp and E2 − E3 ≥ +0.5 pp, ≥ 2/3 seeds, fewer critical errors | E2 − E0 = +0.00 pp; critical errors +2.0 | **not met** |
 | E1 > E0 by ≥ 0.5 pp | −0.11 pp | mean information alone does not help |
 | E2 > E1 by ≥ 0.5 pp | +0.11 pp | learned selection does not beat fixed mixing |
-| E2 ≈ E3, both > E0 (capacity) | E3 < E0 by 0.95 pp (0/3 seeds) | extra width does not help; capacity explains nothing here |
-| gate stays near 0.119 or moves to 0 | bimodal, static per channel | the network *uses* mean statistics on a subset of channels, but not per object |
-| critical pairs change while accuracy does not | dresser→night ↓ 2.7, night→dresser ↑ 4.0 (E2) | the boundary between the pair *moved*; the pair is not better separated |
+| E2 ≈ E3, both > E0 (capacity) | E3 < E0 by 0.95 pp (0/3 seeds) | added parameters alone did not help |
+| gate stays near 0.119 or moves to 0 | bimodal, nearly static per channel | the gate did not behave as hypothesized: mean statistics on 20–32% of channels, max on 43–63%, not adapted per object |
+| critical pairs change while accuracy does not | E2: dresser→night ↓ 2.7, night→dresser ↑ 4.0; E1: table→desk ↓ 4.7, others ↑ | errors were redistributed within the pairs; no consistent reduction of the total |
 | all within ±0.5 pp | E0, E1, E2 within 0.11 pp | **null result for clean accuracy** |
 
 **Conclusion.** The hypothesis — that adding learned, channel-wise mean
 information to max pooling reduces the proportion-defined confusions — is not
-supported. The module is not inert: the gate learned a stable max/mean channel
-split and made the classifier more robust to sparser inputs (+1.1 pp at 256
-points, all seeds). But the confused pairs are limited by information that is
-already gone before pooling (absolute size; proportions blurred by the
-augmentation) or that is local rather than distributional (table/desk).
+supported. Confirmatory: no clean-accuracy gain (E2 − E0 = +0.00 pp), no gain
+from added parameters (E3 −0.95 pp), errors redistributed rather than reduced,
+and a gate that settled into a nearly static channel split instead of the
+hypothesized adaptive mixture. Exploratory: E2 may be more robust with fewer
+points (+1.1 pp at 256 points). Post-hoc probes suggest that the confused pairs
+may be limited by information the preprocessing removes (absolute size) or the
+training augmentation perturbs (proportions), or by local rather than
+distributional differences (table/desk).
 
 **Alternative explanations still open.** (1) Seed variability: paired runs flip
 15–39 test objects, so 3 seeds resolve ≈ 1 pp, not 0.1 pp. (2) E3's deficit
@@ -291,13 +321,35 @@ classifier depends on the units of uploaded objects.
 
 ## Environment notes
 
-- `scripts/smoke_backend.py` passes all checks; in the HW3 environment Uvicorn
-  prints a `TypeError` traceback while restoring signal handlers *after* the
-  test server has shut down (not seen in the HW2 log; environment-related, does
-  not affect any result).
-- Final verification (job 22558304, commit `d8fb406`): `npm ci`, `tsc`, ESLint and
-  the production build pass; the complete browser suite passes (139 tests,
-  including the classification spec with the bundled HW3 model and the
-  interactive-training case on the real ModelNet10 cache); sample integrity,
-  backend suite (127 passed), backend smoke, whitespace check and static
-  production smoke pass.
+- **Uvicorn shutdown traceback (fixed in the smoke harness).** Inside Slurm jobs
+  on this cluster every process is started with
+  `LD_PRELOAD=…/libxalt_init.so` (XALT job monitoring), which installs a native
+  SIGTERM handler before Python starts: `/proc/self/status` shows SIGTERM caught,
+  and `signal.getsignal(SIGTERM)` returns `None` (with the preload removed it is
+  `SIG_DFL`). Uvicorn stores the previous handlers when it starts serving and
+  re-installs them on shutdown; `signal.signal(SIGTERM, None)` raises
+  `TypeError`, so the server exited with code 1 and a traceback after a
+  successful shutdown, whether it was stopped with SIGINT or SIGTERM. The smoke
+  harness now (1) starts the normal `uvicorn` entry point through a launcher
+  that replaces only such an unrepresentable SIGTERM handler with `SIG_DFL`
+  before Uvicorn starts, (2) stops the server with SIGINT (Ctrl+C), and
+  (3) requires exit code 0 and no traceback in the server log. Checked in
+  job 22559024: old launcher → exit 1 with traceback for SIGINT and SIGTERM;
+  new launcher → exit 0 for SIGINT and 143 (re-raised SIGTERM, by Uvicorn's
+  design) for SIGTERM, no traceback. Running `uvicorn app.main:app` by hand in
+  such a job still prints the traceback on Ctrl+C; it is cosmetic.
+- **Stale-prediction race in the classifier panel (fixed).** The final audit's
+  first complete browser run failed once in the upload test: the panel enabled
+  *Predict* while a newly chosen file was still being opened in the viewer, so a
+  click could send the *previous* input, whose result then appeared under the
+  new file name (a pre-existing HW2 race, exposed by a slower node). *Predict*
+  is now disabled while an input is being opened, and a response that arrives
+  after the input or model changed is discarded.
+- Final verification of the submitted state: job 22559532 — focused HW3 tests
+  (41 passed), full backend suite (127 passed), backend smoke with graceful
+  shutdown, sample integrity, JSON/CSV consistency (56 JSON files; summary CSV =
+  summary JSON = the 12 `metrics.json`, all from `14bc0d0`, clean); job
+  22559915 after the panel fix — `tsc`, ESLint and build pass, the
+  classification spec passes 25/25 (5 repetitions), the complete browser suite
+  passes (139 tests), the static production smoke passes; `git diff --check` is
+  clean.

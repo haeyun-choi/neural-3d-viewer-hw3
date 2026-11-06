@@ -46,6 +46,11 @@ export function ClassificationPanel({ onShow, viewerBusy }: {
   const [input, setInput] = useState<Input | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [predicting, setPredicting] = useState(false);
+  // An input is being opened in the viewer; Predict waits for it.
+  const [showing, setShowing] = useState(false);
+  // Bumped whenever the input or the model changes: a prediction that was requested
+  // before the change is dropped instead of being shown under the new input.
+  const generation = useRef(0);
   const [error, setError] = useState("");
   // Not being able to reach the backend on load is a state, not an error the
   // user caused, so it is announced politely rather than as an alert.
@@ -99,6 +104,8 @@ export function ClassificationPanel({ onShow, viewerBusy }: {
   }, [runId, runActive, refreshModels]);
 
   async function show(next: Input) {
+    generation.current += 1;
+    setShowing(true);
     setError("");
     setPrediction(null);
     try {
@@ -115,20 +122,26 @@ export function ClassificationPanel({ onShow, viewerBusy }: {
         }, false);
       }
       setInput(next);
-    } catch (reason) { setError(errorMessage(reason)); }
+    } catch (reason) {
+      setError(errorMessage(reason));
+    } finally { setShowing(false); }
   }
 
   async function predict() {
     if (!input) return;
+    const requested = generation.current;
     setPredicting(true);
     setError("");
     try {
-      setPrediction(input.kind === "sample"
+      const result = input.kind === "sample"
         ? await classificationApi.predictSample(input.sample.id, modelId)
-        : await classificationApi.predictUpload(input.file, modelId));
+        : await classificationApi.predictUpload(input.file, modelId);
+      if (generation.current === requested) setPrediction(result);
     } catch (reason) {
-      setPrediction(null);
-      setError(errorMessage(reason));
+      if (generation.current === requested) {
+        setPrediction(null);
+        setError(errorMessage(reason));
+      }
     } finally { setPredicting(false); }
   }
 
@@ -178,7 +191,7 @@ export function ClassificationPanel({ onShow, viewerBusy }: {
           <h3 id="classify-heading">Classify an object</h3>
           <div className="form-row">
             <label htmlFor="cls-model">Model</label>
-            <select id="cls-model" value={modelId} onChange={(e) => { setModelId(e.target.value); setPrediction(null); }}>
+            <select id="cls-model" value={modelId} onChange={(e) => { generation.current += 1; setModelId(e.target.value); setPrediction(null); }}>
               {models.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label}{m.test_accuracy !== null && m.test_accuracy !== undefined ? ` · test ${percent(m.test_accuracy)}` : ""}
@@ -213,7 +226,7 @@ export function ClassificationPanel({ onShow, viewerBusy }: {
                 : <>Input: <b>{input.file.name}</b> · uploaded only when you press Predict</>
               : "Choose a sample or upload a PLY; it opens in the viewer above."}
           </p>
-          <button className="primary" data-testid="predict-button" disabled={!input || predicting || !models.length} onClick={() => void predict()}>
+          <button className="primary" data-testid="predict-button" disabled={!input || predicting || showing || !models.length} onClick={() => void predict()}>
             {predicting ? "Predicting…" : "Predict"}
           </button>
           {error && <p className="alert error" role="alert" data-testid="classification-error">{error}</p>}
