@@ -18,7 +18,7 @@ from . import dataset
 from .inference import (BUNDLED_MODELS, DEFAULT_MODEL, MAX_UPLOAD_BYTES, InputError, ModelRegistry, parse_ply,
                         preprocess)
 from .jobs import QueueFull, TrainingManager
-from .models import ACTIVATIONS
+from .models import ACTIVATIONS, MODEL_NAMES
 from .training import TrainConfig
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -36,7 +36,7 @@ class ClassificationSettings:
 
 class TrainRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    model: Literal["shallow", "mini_pointnet"] = "mini_pointnet"
+    model: Literal[MODEL_NAMES] = "mini_pointnet"  # type: ignore[valid-type]
     epochs: int = Field(20, strict=True, ge=1, le=200)
     learning_rate: float = Field(1e-3, gt=0, le=0.1, allow_inf_nan=False)
     hidden_dim: int = Field(64, strict=True, ge=8, le=256)
@@ -87,7 +87,7 @@ def create_router(settings: ClassificationSettings) -> tuple[APIRouter, Training
     @router.get("/models")
     def models():
         return {"classes": list(dataset.CLASSES), "default_model": DEFAULT_MODEL, "models": registry.available(),
-                "activations": list(ACTIVATIONS), "architectures": ["shallow", "mini_pointnet"]}
+                "activations": list(ACTIVATIONS), "architectures": list(MODEL_NAMES)}
 
     @router.get("/dataset")
     def dataset_status():

@@ -4,6 +4,9 @@
     python -m app.classification.training evaluate --checkpoint DIR/best.pt
     python -m app.classification.training compare --baseline DIR --final DIR --out FILE
 
+``--model`` is one of ``shallow``, ``mini_pointnet`` (HW2) or the HW3 pooling
+variants ``mini_pointnet_fixed_dual`` and ``mini_pointnet_gated_dual``.
+
 One optimisation step, spelled out in ``train_one_epoch``:
 
 1. forward propagation  ``logits = model(points)``
@@ -21,6 +24,9 @@ import argparse
 import copy
 import json
 import math
+import os
+import platform
+import socket
 import subprocess
 import time
 from dataclasses import asdict, dataclass, fields
@@ -35,7 +41,7 @@ from torch import nn
 
 from . import dataset
 from .geometry import PREPROCESSING
-from .models import build_model, parameter_count
+from .models import GATE_BIAS, GATE_HIDDEN, MODEL_NAMES, build_model, model_kwargs, parameter_count
 
 CHECKPOINT_FORMAT = "neural3d-modelnet10-classifier"
 
@@ -54,6 +60,9 @@ class TrainConfig:
     augment: bool = True
     seed: int = 0
     device: str = "auto"
+    # HW3 Residual Gated Dual Pooling; read only when model == "mini_pointnet_gated_dual".
+    gate_hidden: int = GATE_HIDDEN
+    gate_bias: float = GATE_BIAS
 
     @classmethod
     def from_dict(cls, values: dict) -> "TrainConfig":
@@ -62,6 +71,9 @@ class TrainConfig:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+    def model_kwargs(self) -> dict:
+        return model_kwargs(self.model, self.hidden_dim, self.activation, self.dropout, self.gate_hidden, self.gate_bias)
 
 
 class TrainingCancelled(Exception):
@@ -156,10 +168,40 @@ def git_sha() -> str | None:
         return None
 
 
+def git_dirty() -> bool | None:
+    """True when tracked files differ from HEAD, so a run is not exactly its recorded SHA."""
+    try:
+        out = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True,
+                             text=True, cwd=Path(__file__).parent, timeout=5, check=True).stdout
+        return bool(out.strip())
+    except Exception:  # noqa: BLE001 - provenance only
+        return None
+
+
+def cpu_model() -> str:
+    try:
+        for line in Path("/proc/cpuinfo").read_text().splitlines():
+            if line.startswith("model name"):
+                return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return platform.processor() or platform.machine()
+
+
+def runtime_info(device: torch.device) -> dict:
+    """Where and with what a run executed (provenance for the experiment records)."""
+    job = os.environ.get("SLURM_JOB_ID")
+    if os.environ.get("SLURM_ARRAY_JOB_ID"):
+        job = f"{os.environ['SLURM_ARRAY_JOB_ID']}_{os.environ.get('SLURM_ARRAY_TASK_ID')}"
+    return {"host": socket.gethostname(), "slurm_job": job, "cpu": cpu_model(), "threads": torch.get_num_threads(),
+            "cuda_device": torch.cuda.get_device_name(device) if device.type == "cuda" else None,
+            "torch_cuda_build": torch.version.cuda, "python": platform.python_version(), "numpy": np.__version__}
+
+
 def make_checkpoint(model: nn.Module, config: TrainConfig, classes: list[str], extra: dict) -> dict:
     return {
         "format": CHECKPOINT_FORMAT, "version": 1, "model": config.model,
-        "model_config": {"hidden_dim": config.hidden_dim, "activation": config.activation, "dropout": config.dropout},
+        "model_config": config.model_kwargs(),
         "train_config": config.to_dict(), "classes": list(classes), "preprocessing": PREPROCESSING,
         "state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()}, **extra,
     }
@@ -184,6 +226,8 @@ def train(config: TrainConfig, data: dataset.PreparedData, out_dir: Path | None 
     ``evaluate_test=False`` is for hyperparameter selection: the test split is not touched.
     """
     started = time.monotonic()
+    # Provenance is read when the run starts, i.e. for the code that is actually executing.
+    provenance = {"git_sha": git_sha(), "git_dirty": git_dirty()}
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
     generator = torch.Generator().manual_seed(config.seed)
@@ -195,7 +239,7 @@ def train(config: TrainConfig, data: dataset.PreparedData, out_dir: Path | None 
 
     train_x, train_y = tensors(data.train_points, data.train_labels)
     val_x, val_y = tensors(data.val_points, data.val_labels)
-    model = build_model(config.model, len(classes), config.hidden_dim, config.activation, config.dropout).to(device)
+    model = build_model(config.model, len(classes), **config.model_kwargs()).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
     scheduler = (torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs, eta_min=config.learning_rate * 0.01)
                  if config.scheduler == "cosine" else None)
@@ -227,7 +271,8 @@ def train(config: TrainConfig, data: dataset.PreparedData, out_dir: Path | None 
         "best_epoch": best["epoch"], "best_val_accuracy": best["val_accuracy"], "best_val_loss": best["val_loss"],
         "test_accuracy": None, "test_error": None, "test_loss": None, "confusion_matrix": None, "per_class": None,
         "classes": classes, "split_sizes": data.summary(),
-        "train_seconds": time.monotonic() - started, "torch": torch.__version__, "git_sha": git_sha(),
+        "train_seconds": time.monotonic() - started, "torch": torch.__version__, **provenance,
+        "runtime": runtime_info(device),
         "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     if evaluate_test:
@@ -316,6 +361,8 @@ def main(argv: list[str] | None = None) -> int:
         value = getattr(defaults, f.name)
         if isinstance(value, bool):
             run.add_argument(f"--{f.name.replace('_', '-')}", type=lambda s: s.lower() in ("1", "true", "yes"), default=value)
+        elif f.name == "model":
+            run.add_argument("--model", choices=MODEL_NAMES, default=value)
         else:
             run.add_argument(f"--{f.name.replace('_', '-')}", type=type(value), default=value)
     run.add_argument("--out", type=Path, required=True)
