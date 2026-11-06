@@ -1,4 +1,260 @@
-# Neural 3D Data Viewer
+# Neural 3D Data Viewer · DS 7400 HW3: Residual Gated Dual Pooling
+
+**HW3 asks whether a hypothesis-driven change to my HW2 network fixes the errors
+it actually makes.** The HW2 Mini-PointNet classifies ModelNet10 point clouds
+with a single global *max* pool, and most of its test errors are between
+look-alike pairs (table/desk, dresser/night stand). I hypothesised that max
+pooling — which keeps only the strongest point per feature channel — throws
+away *how much* of an object shows a feature, and designed **Residual Gated
+Dual Pooling**: keep the max-pooled vector as an identity path (ResNet idea) and
+let an SE-style channel gate (SENet idea) add a learned, per-channel correction
+toward the mean-pooled vector. I tested it against the unchanged baseline, a
+fixed 50/50 max+mean pool and a parameter-matched wider baseline, 3 seeds each,
+with everything else held fixed.
+
+**Result — a clean, well-controlled null result for the main hypothesis.** The
+rerun baseline reproduces HW2 exactly; the proposed module matches it
+(**92.77% vs 92.77%** mean test accuracy over 3 seeds) and does not reduce the
+targeted confusions. The gate is not idle: it learns a stable split into
+max-like and mean-like channels and makes the classifier more robust to sparser
+inputs (**+1.1 pp at 256 points, in every seed**). A post-hoc probe shows why
+the main goal failed: the strongest dresser/night-stand cue (absolute size) is
+removed by the normalisation *before* pooling, and the table/desk difference is
+local, not distributional.
+
+> **Read first:** [report (PDF, 2 pages)](docs/hw3-report.pdf) ·
+> [design record, written before any result](docs/hw3-design.md) ·
+> [experiment log](docs/hw3-experiments.md) · [video script](docs/hw3-video-script.md) ·
+> [all results](results/hw3/)
+
+The HW1 point-cloud/Gaussian-splat viewer and the HW2 classifier are unchanged
+and documented [further down](#background-hw1-viewer-and-hw2-classifier).
+
+## HW3 at a glance
+
+### 1. What the network sees
+
+- **Task:** ModelNet10, one of 10 furniture classes per object (official split;
+  3,193 train / 798 validation / 908 test).
+- **Input:** each CAD mesh becomes **1,024 points sampled on its surface**
+  (triangles chosen with probability ∝ area). Each point is only `[x, y, z]` —
+  no colour, normal or connectivity. A batch is a tensor of shape
+  **`(B, 1024, 3)`** (B = 32 objects in training); the class label is stored
+  separately.
+- **Normalisation:** `μ = mean(p_i)`, `q_i = p_i − μ`, `r = max‖q_i‖`,
+  `p̂_i = q_i / r` — translation and **absolute size are removed**; relative
+  proportions are kept.
+- **Training-only augmentation:** independent per-axis scale U(0.8, 1.25),
+  shift U(−0.1, 0.1), jitter N(0, 0.01²) clipped at ±0.03, no rotation. The
+  per-axis scale changes aspect ratios by up to 1.56× — relevant below.
+
+### 2. Baseline: HW2 Mini-PointNet (76,362 parameters)
+
+```mermaid
+flowchart LR
+  P["points (B,1024,3)"] --> M["shared MLP per point<br/>3→64→128→256<br/>Conv1d k=1 + BN + ReLU"]
+  M --> H["h (B,256,1024)"]
+  H --> X["global max pool<br/>m_c = max_i h_ic"]
+  X --> C["head 256→128→10<br/>BN, ReLU, dropout 0.3"]
+  C --> L["logits (B,10)"]
+```
+
+Cross-entropy, Adam (lr 0.001, weight decay 1e-4), cosine schedule, 60 epochs,
+batch 32, checkpoint chosen on validation accuracy, test split scored once.
+
+### 3. Observed limitation
+
+HW2 seed-0 test confusion: **12 tables → desk, 4 desks → table, 11 dressers →
+night stand, 11 night stands → dresser** — 38 of its 58 test errors (seeds 1
+and 2: 17/5/10/12 and 19/4/12/11). These pairs differ mainly in *proportion*
+and *extent* (drawers or side panels on a desk; a night stand is a short,
+near-cubic dresser).
+
+Global max pooling `m_c = max_i h_{i,c}` is permutation-invariant and keeps
+strong local evidence, but it
+
+- ignores **prevalence**: a feature on one point or on 900 points gives the same `m_c`;
+- ignores the **distribution** of surface features (how much is top, legs, drawer front);
+- sends gradient through pooling to **one point per channel** (`∂m_c/∂h_{i,c} = 1[i = argmax]`).
+
+Hypothesis (a hypothesis, not a known cause): *a learned, channel-wise blend of
+max and mean statistics helps the proportion-defined pairs.*
+
+### 4. Two ideas from class
+
+- **ResNet** (He et al., CVPR 2016): learn a *correction* around a mapping that
+  already works (`y = x + F(x)`), so "change nothing" is easy.
+- **SENet** (Hu et al., CVPR 2018): squeeze global information and learn a
+  *data-dependent, channel-wise* recalibration with a bottleneck MLP + sigmoid.
+
+The module below borrows these two principles; it is not a ResNet or an SENet,
+and mixing max and mean statistics is not new in general — the HW3 work is the
+hypothesis-driven adaptation and its controlled test.
+
+### 5. Proposed: Residual Gated Dual Pooling (E2)
+
+```
+m = max_N h ,  a = mean_N h                        (B, 256) each
+g = σ( W₂ ReLU( W₁ [m; a] + b₁ ) + b₂ )            W₁: 512→16, W₂: 16→256
+z = m + g ⊙ (a − m)  =  (1 − g) ⊙ m + g ⊙ a         → unchanged head
+```
+
+`m` is the identity path, `g ⊙ (a − m)` the learned correction; `g → 0` is max
+pooling, `g → 1` mean pooling, per channel and per object. **Baseline-preserving
+initialisation:** `W₂ = 0`, `b₂ = −2`, so training starts at `g = σ(−2) ≈ 0.119`
+everywhere — close to max pooling but not saturated. The gate adds 12,560
+parameters (88,922 in total). Code:
+[`backend/app/classification/models.py`](backend/app/classification/models.py)
+(`ResidualGatedDualPool`).
+
+### 6. Controlled experiment
+
+| ID | Model | Pooling | Params | Question |
+| --- | --- | --- | ---: | --- |
+| E0 | `mini_pointnet`, h = 64 | max (HW2, rerun) | 76,362 | baseline under the HW3 code and environment |
+| E1 | `mini_pointnet_fixed_dual` | `0.5 m + 0.5 a`, no new parameters | 76,362 | does mean information itself help? |
+| E2 | `mini_pointnet_gated_dual` | residual gated dual | 88,922 | does learned channel-wise selection help? |
+| E3 | `mini_pointnet`, h = 69 | max | 88,537 | are E2's extra parameters enough to explain it? |
+
+Seeds 0, 1, 2 for each (12 runs). Identical for all runs: data cache and the
+same 1,024 points per object, splits, augmentation, 60 epochs, batch 32, Adam
+lr 0.001, weight decay 1e-4, cosine schedule, dropout 0.3, validation-based
+checkpoint, one test evaluation, software environment, and CPU model (Intel
+Xeon Gold 6248, 8 threads). For a given seed every condition sees the same
+batches and augmentation, and E0/E1/E2 start from identical shared weights with
+the same dropout random stream — only the pooling differs. No per-model tuning;
+the test split informs no decision.
+
+### 7. Results — official test split (908 objects), seeds 0–2
+
+| Model | Params | Val acc | **Test acc** | table→desk | desk→table | dresser→night | night→dresser |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| E0 max pooling (HW2, rerun) | 76,362 | 97.70 ± 0.06 | **92.77 ± 0.60** | 16.0 | 4.3 | 11.0 | 11.3 |
+| E1 fixed dual (0.5 max + 0.5 mean) | 76,362 | 97.66 ± 0.41 | **92.66 ± 0.26** | 11.3 | 4.7 | 11.7 | 12.3 |
+| E2 residual gated dual (proposed) | 88,922 | 97.49 ± 0.18 | **92.77 ± 0.32** | 16.7 | 4.3 | 8.3 | 15.3 |
+| E3 max pooling, h = 69 | 88,537 | 97.41 ± 0.12 | **91.81 ± 0.34** | 19.7 | 4.3 | 15.7 | 12.0 |
+
+Accuracies in %, mean ± SD over three seeds; error columns are test objects
+(mean over seeds; per-seed values in [`results/hw3/summary.md`](results/hw3/summary.md)).
+Paired by seed, E2 − E0 = −0.44, +0.11, +0.33 pp (mean **+0.00 pp**; exact
+McNemar p = 0.57, 1.00, 0.61), E2 − E1 = +0.11 pp, E3 − E0 = −0.95 pp (0/3
+seeds). **E0 reproduces HW2 exactly** (93.61 / 92.29 / 92.40%, same selected
+epochs), so every difference is caused by the change or by seed variability.
+
+![Test accuracy per seed and critical directional errors](results/hw3/results.png)
+
+### 8. Analysis — what the evidence says
+
+**The hypothesis is not supported.** By the decision rules fixed in advance
+([design §9](docs/hw3-design.md#9-pre-registered-expectations-and-decision-rules)):
+E2 does not beat E0 (+0.00 pp), mean information alone does not help (E1
+−0.11 pp), learned selection does not beat fixed mixing (E2 − E1 +0.11 pp), and
+the four critical errors do not fall (42.7 → 44.7). E2 moved the
+dresser/night-stand boundary (dresser→night −2.7, night→dresser +4.0) instead of
+separating the pair. Extra capacity explains nothing either: the wider E3 is
+*worse* (−0.95 pp), so E2's +0.95 pp over E3 reflects E3's deficit, not a gain.
+
+**The gate is not idle — it learned a static channel split.** Starting from
+g = 0.119 everywhere, it became bimodal: 52–83 of 256 channels average g > 0.5
+(some ≈ 1, i.e. mean pooling) while 43–62% of gate values fell *below* the
+start toward pure max. Weight decay cannot produce this two-sided split. But for
+a given channel g barely varies between objects (SD 0.006–0.017, versus
+0.27–0.42 across channels) and the class-average gate differs by < 0.01 between
+table, desk, dresser and night stand: the SENet-style *per-object*
+recalibration was not used.
+
+![E2 gate distribution and per-channel mean gate](results/hw3/gates.png)
+
+**A real but different benefit: robustness to sparser inputs** (pre-registered
+secondary prediction). Evaluating the same checkpoints on fixed 512- and
+256-point subsets, E2 loses 2.0 pp at 256 points versus 3.2 pp for E0
+(90.75 ± 0.18% vs 89.61 ± 0.54%; better in all three seeds). A channel max over
+fewer points can only shrink; a mean is unbiased.
+
+<img src="results/hw3/robustness.png" alt="Accuracy with 1024, 512 and 256 points" width="460">
+
+**Gradient participation (P1).** Max pooling sends gradient to ≈ 13% of the
+points (≈ 134 of 1,024). Dual pooling reaches 100%, but the mean spreads 1/N per
+point, so the critical points still carry 91–96% of the gradient norm — the
+"ignored points" argument is true in support but weak in magnitude.
+
+**Why pooling could not fix these pairs — a post-hoc probe** (not
+pre-registered; no network; best single threshold chosen on the training pool,
+balanced accuracy on the test split, 50% = chance):
+
+| Pair | Cue | Separability | Who removes it |
+|---|---|---:|---|
+| dresser vs night stand | absolute height (raw mesh units) | **85.5%** | unit-sphere normalisation |
+| dresser vs night stand | depth/width ratio | 81.4% → **73.3%** with augmentation | per-axis scale augmentation |
+| table vs desk | any size or bounding-box ratio | 42–56% | — (not a global cue) |
+
+The dresser/night-stand cue is gone or blurred *before* pooling — the network's
+own within-pair accuracy (≈ 87%) is close to what absolute height alone gives.
+Table/desk differ in local structure (drawers, panels), which max pooling
+already targets, or are simply ambiguous.
+
+**Alternative explanations kept open.** Seed variability is large: paired runs
+that differ only in pooling still flip 15–39 test objects, so three seeds
+resolve about 1 pp, not 0.1 pp; E3's −0.95 pp shows how much a change of
+initialisation alone can move the score (HW2's 93.6% seed 0 was a favourable
+draw). The gate may also need inputs that actually vary per object to become
+data-dependent.
+
+### 9. Next experiment
+
+**E4:** E0 plus one scalar — `log r`, the normalisation radius (absolute size) —
+concatenated to the pooled feature (+128 parameters), seeds 0–2, everything
+else fixed, primary outcome dresser↔night-stand errors. Then **E5:** isotropic
+scale augmentation (one factor for all axes) to test the augmentation
+explanation on its own. (Caveat: ModelNet units are per-model CAD units, and a
+size-aware classifier depends on the units of uploaded objects.)
+
+### 10. Reproduce
+
+```bash
+cd backend && python -m pip install -r requirements-dev.txt && cd ..   # Python 3.12; pins as in HW2
+export MODELNET10_DATA_DIR=$PWD/backend/data/modelnet10                # Git-ignored
+(cd backend && python -m app.classification.dataset prepare)           # download, verify, sample, cache
+python -m pytest -q backend                                            # 126 tests incl. tests/test_hw3_*.py
+OUT=$PWD/backend/data/experiments/hw3 scripts/hw3/run_matrix.sh        # 12 runs (TASK=i runs one)
+cd backend
+python -m app.classification.hw3 summarize --runs data/experiments/hw3 --out ../results/hw3
+python -m app.classification.hw3 diagnose  --runs data/experiments/hw3 --out ../results/hw3
+python -m app.classification.hw3 probe     --out ../results/hw3
+python -m app.classification.hw3 collect   --runs data/experiments/hw3 --dest ../results/hw3/runs
+```
+
+A single run (from `backend/`), e.g. the proposed model with seed 1:
+`python -m app.classification.training train --model mini_pointnet_gated_dual --seed 1 --out data/experiments/hw3/e2_gated_dual_seed1`
+(all other defaults are the HW2 protocol). One run takes 5–12 minutes on 8 CPU
+threads. The reported runs used an Intel Xeon Gold 6248 with 8 threads, the same
+CPU and package versions as HW2 — see [`docs/hw3-experiments.md`](docs/hw3-experiments.md)
+for the exact environment, Slurm jobs and commands.
+
+### 11. Artifacts
+
+| Path | Contents |
+| --- | --- |
+| [`docs/hw3-design.md`](docs/hw3-design.md) | hypothesis, equations, controls and decision rules, committed before any HW3 run |
+| [`docs/hw3-experiments.md`](docs/hw3-experiments.md) | environment, commands, every run, all aggregate and diagnostic results, interpretation |
+| [`docs/hw3-report.pdf`](docs/hw3-report.pdf) · [`.tex`](docs/hw3-report.tex) | two-page report |
+| [`docs/hw3-video-script.md`](docs/hw3-video-script.md) | ≤ 3-minute video script |
+| [`results/hw3/runs/<condition>_seed<k>/`](results/hw3/runs/) | `best.pt`, `config.json`, `history.json`, `metrics.json`, `curves.png`, `confusion.png` for all 12 runs |
+| [`results/hw3/summary.{json,md}`](results/hw3/summary.md), [`summary_runs.csv`](results/hw3/summary_runs.csv) | aggregates, paired differences, critical pairs, timing, reproduction check |
+| [`results/hw3/diagnostics.{json,md}`](results/hw3/diagnostics.md) | re-scored checkpoints, McNemar tests, gate statistics, gradient participation, point-count robustness |
+| [`results/hw3/probe.{json,md}`](results/hw3/probe.md) | post-hoc size/proportion probe |
+| `results/hw3/{results,gates,robustness,curves_all,report_figure}.png` | figures (`report_figure.png`: `python scripts/hw3/report_figure.py`) |
+| [`backend/app/classification/models.py`](backend/app/classification/models.py) | `GlobalMaxPool`, `FixedDualPool`, `ResidualGatedDualPool`, `MiniPointNet(pooling=…)` |
+| [`backend/app/classification/hw3.py`](backend/app/classification/hw3.py) | aggregation and diagnostics CLI |
+| [`backend/tests/test_hw3_pooling.py`](backend/tests/test_hw3_pooling.py), [`test_hw3_analysis.py`](backend/tests/test_hw3_analysis.py) | HW3 tests |
+
+**References.** K. He, X. Zhang, S. Ren, J. Sun, “Deep Residual Learning for
+Image Recognition,” CVPR 2016 ([paper](https://openaccess.thecvf.com/content_cvpr_2016/html/He_Deep_Residual_Learning_CVPR_2016_paper.html)).
+J. Hu, L. Shen, G. Sun, “Squeeze-and-Excitation Networks,” CVPR 2018
+([paper](https://openaccess.thecvf.com/content_cvpr_2018/html/Hu_Squeeze-and-Excitation_Networks_CVPR_2018_paper.html)).
+ModelNet10 and PointNet: see [Attribution](#attribution-and-ai-assistance).
+
+## Background: HW1 viewer and HW2 classifier
 
 ![Neural 3D Data Viewer displaying the Eagle Point Cloud](assets/teaser.png)
 
@@ -600,6 +856,11 @@ classifies a bundled sample over real HTTP. `frontend/tests/classification.spec.
 drives the classification panel end to end against the real bundled
 checkpoints; its interactive-training case runs on the real ModelNet10 cache and
 is skipped unless `MODELNET10_DATA_DIR` points at a prepared one.
+`backend/tests/test_hw3_pooling.py` covers the HW3 pooling variants (shapes,
+permutation invariance, the fixed-dual formula, gate range and initial value,
+parameter counts, identical shared initialisation across poolings, gradients,
+checkpoint round trips, CLI and API runs) and `test_hw3_analysis.py` the
+aggregation and diagnostics on fixture runs.
 
 `npm run test:browser` covers both representations, including the Gaussian
 format, routing, lifecycle, scene-identity, large-scene and trajectory-exploration
@@ -637,8 +898,8 @@ COLMAP multiview reconstruction, VGGT, server-side splat conversion, a scene
 gallery, quantitative point-cloud versus Gaussian comparison, and Gaussian
 picking and region annotation. None of these exists in the repository today —
 there is no reconstruction job, Gaussian training, authentication or cloud
-deployment here; the only deep-learning pipeline is HW2's ModelNet10
-classifier. Building a `.rad` asset is likewise an
+deployment here; the only deep-learning pipeline is the ModelNet10
+classifier (HW2, with HW3's pooling experiments). Building a `.rad` asset is likewise an
 **offline** step you run yourself with Spark's `build-lod`; this repository
 hosts nothing and converts nothing.
 
@@ -685,7 +946,17 @@ neither stored nor logged.
   Deep Learning on Point Sets for 3D Classification and Segmentation", CVPR 2017.
   It is a small re-implementation written for this project in plain PyTorch; no
   code was copied from the official or any other implementation.
-- **AI assistance:** Claude Code (Anthropic) assisted with the implementation
+- **ResNet / SENet (HW3 design principles):** K. He, X. Zhang, S. Ren and J. Sun,
+  "Deep Residual Learning for Image Recognition", CVPR 2016; J. Hu, L. Shen and
+  G. Sun, "Squeeze-and-Excitation Networks", CVPR 2018. Only their principles
+  (a learned correction around an identity path; a channel-wise sigmoid gate
+  from global descriptors) are used; no code was taken from either.
+- **AI assistance:** Claude Code (Anthropic) assisted with the implementation,
+  experiment orchestration, analysis and documentation of HW3 (design record,
+  pooling modules, tests, Slurm runs, diagnostics, report and video script); the
+  reported numbers come from the runs listed in
+  [`docs/hw3-experiments.md`](docs/hw3-experiments.md).
+- **AI assistance (HW2):** Claude Code (Anthropic) assisted with the implementation
   and debugging of HW2 — the dataset pipeline, models, training code, API,
   frontend panel, tests and this documentation. The author reviewed and tested
   the result; the reported metrics come from the training runs recorded in

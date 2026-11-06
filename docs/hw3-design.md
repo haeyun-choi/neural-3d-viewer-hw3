@@ -277,3 +277,23 @@ is not distinguishable from seed noise.
 Data, preprocessing, augmentation, optimizer, learning rate, schedule, epochs,
 batch size, dropout, head, point MLP, checkpoint rule and test protocol. No
 hyperparameter search, no per-model tuning, no test-set feedback.
+
+---
+
+## Addendum (written after the experiments; the sections above are unchanged)
+
+Deviations from this plan, all procedural:
+
+- **Execution venue.** The 12 runs used the Slurm `interactive` partition
+  restricted to the same CPU model as HW2 (Intel Xeon Gold 6248, 8 threads),
+  because the `standard` partition queue would have delayed the start by days.
+  The HW2 virtual environment could no longer start (its base interpreter was
+  removed from the cluster); it was rebuilt with the identical package pins.
+  E0 then reproduced the HW2 runs exactly, so neither change affected results.
+- **One analysis was added after seeing the results**: a network-free probe of
+  how well absolute size and bounding-box aspect ratios separate the two
+  confused pairs (`python -m app.classification.hw3 probe`). It is reported as
+  post-hoc in every document and does not change any decision rule.
+- Everything else ran as specified: 4 conditions × 3 seeds, no reruns, no
+  tuning, the test split scored once per run, the P1 diagnostics as defined in
+  §8. Results and their reading against §9: [`hw3-experiments.md`](hw3-experiments.md).
