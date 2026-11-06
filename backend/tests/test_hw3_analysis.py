@@ -107,3 +107,16 @@ def test_collect_copies_compact_artifacts(fixture_runs, tmp_path):
     copied = hw3.collect(fixture_runs / "runs", tmp_path / "released")
     assert len(copied) == 12
     assert sorted(p.name for p in (tmp_path / "released" / "e2_gated_dual_seed1").iterdir()) == sorted(hw3.ARTIFACTS)
+
+
+def test_probe_helpers(tmp_path):
+    (tmp_path / "m.off").write_text("OFF3 1 0\n0 0 0\n2 0 0\n0 1 5\n3 0 1 2\n")
+    assert np.array_equal(np.ptp(hw3.read_off_vertices(tmp_path / "m.off"), axis=0), [2, 1, 5])
+    x = np.array([0.1, 0.2, 0.3, 1.1, 1.2, 1.3])
+    y = np.array([1, 1, 1, 0, 0, 0])
+    threshold, sign = hw3.best_stump(x, y)
+    assert hw3.balanced_accuracy(y, (sign * (x - threshold) > 0).astype(int)) == 1.0
+    assert hw3.cohens_d(x, y) > 5
+    extents = np.ones((1000, 3))
+    augmented = hw3.augment_extents(extents, np.random.default_rng(0))
+    assert augmented.min() >= 0.8 and augmented.max() <= 1.25

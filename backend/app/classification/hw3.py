@@ -3,6 +3,7 @@
     python -m app.classification.hw3 summarize --runs DIR --out DIR
     python -m app.classification.hw3 diagnose  --runs DIR --out DIR [--data-dir DIR]
     python -m app.classification.hw3 collect   --runs DIR --dest DIR
+    python -m app.classification.hw3 probe     --out DIR [--data-dir DIR]
 
 ``--runs`` holds one folder per training run, named ``<condition>_seed<k>``
 (``scripts/hw3/run_matrix.sh`` writes exactly this layout; the released copy is
@@ -16,6 +17,11 @@
   runs the two P1 diagnostics: gradient participation at the final per-point
   features, and deterministic evaluation with 512 and 256 points.
 - ``collect`` copies the compact artifacts of every run into the repository.
+- ``probe`` (post-hoc, no network involved) checks two alternative explanations
+  for the confused pairs: how well absolute object size (raw mesh units, removed
+  by the unit-sphere normalisation) and bounding-box aspect ratios (kept by the
+  normalisation, perturbed by the per-axis scale augmentation) separate
+  dresser/night_stand and table/desk on their own.
 
 Nothing here trains or selects anything; the test split is only re-scored.
 """
@@ -226,7 +232,7 @@ def plot_summary(summary: dict, records: dict, out: Path) -> None:
         sds = [row[k]["std"] for k in PAIR_KEYS]
         ax_pairs.bar(np.arange(len(PAIR_KEYS)) + (j - (len(conds) - 1) / 2) * width, means, width, yerr=sds,
                      color=COLORS[key], label=SHORT[key], capsize=2)
-    ax_pairs.set_xticks(range(len(PAIR_KEYS)), ["table→desk", "desk→table", "dresser→night st.", "night st.→dresser"])
+    ax_pairs.set_xticks(range(len(PAIR_KEYS)), ["table→desk", "desk→table", "dresser→\nnight stand", "night stand→\ndresser"])
     ax_pairs.set(ylabel="test objects (mean over seeds)", title="Critical directional errors")
     ax_pairs.legend(frameon=False, ncols=4, fontsize=8)
     ax_pairs.grid(axis="y", alpha=0.3)
@@ -388,11 +394,12 @@ def diagnose(runs: Path, out: Path, data_dir: Path | None = None, point_counts=(
                                 "subsample_seed": 0, "point_counts": list(point_counts)}
     out.mkdir(parents=True, exist_ok=True)
     (out / "diagnostics.json").write_text(json.dumps(report, indent=2) + "\n")
-    if gate_arrays:
-        try:
+    try:
+        if gate_arrays:
             plot_gates(gate_arrays, report, out)
-        except ImportError:
-            pass
+        plot_robustness(report["aggregates"]["point_count_robustness"], out)
+    except ImportError:
+        pass
     (out / "diagnostics.md").write_text(markdown_diagnostics(report))
     return report
 
@@ -483,6 +490,141 @@ def plot_gates(gate_arrays: dict, report: dict, out: Path) -> None:
     plt.close(fig)
 
 
+def plot_robustness(robustness: dict, out: Path) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(4.6, 3.0), constrained_layout=True)
+    for condition, rows in robustness.items():
+        counts = sorted(rows, key=int)
+        means = [100 * rows[n]["test_accuracy"]["mean"] for n in counts]
+        sds = [100 * rows[n]["test_accuracy"]["std"] for n in counts]
+        ax.errorbar([int(n) for n in counts], means, yerr=sds, marker="o", ms=4, capsize=3, color=COLORS[condition],
+                    label=SHORT[condition])
+    ax.set_xscale("log", base=2)
+    ax.set_xticks([256, 512, 1024], ["256", "512", "1024"])
+    ax.set(xlabel="points per test object (no retraining)", ylabel="test accuracy (%)",
+           title="Fewer input points (mean ± SD, 3 seeds)")
+    ax.grid(alpha=0.3)
+    ax.legend(frameon=False, fontsize=8)
+    fig.savefig(out / "robustness.png", dpi=150)
+    plt.close(fig)
+
+
+# ----------------------------------------------------------------------------- probe (post-hoc)
+
+PROBE_PAIRS = (("dresser", "night_stand"), ("table", "desk"))
+
+
+def read_off_vertices(path: Path) -> np.ndarray:
+    """Only the vertex block of an OFF file (handles ModelNet's merged 'OFF<n> <m> 0' header)."""
+    lines = [line for line in (raw.split("#", 1)[0].strip() for raw in path.read_text().splitlines()) if line]
+    rest = lines[0][3:].strip()
+    counts, body = (rest.split(), lines[1:]) if rest else (lines[1].split(), lines[2:])
+    n = int(counts[0])
+    return np.array(" ".join(body[:n]).split(), dtype=np.float64).reshape(n, 3)
+
+
+def best_stump(x: np.ndarray, y: np.ndarray) -> tuple[float, int]:
+    """Threshold and direction of the 1-D decision stump with the best training balanced accuracy."""
+    values = np.unique(x)
+    candidates = (values[:-1] + values[1:]) / 2 if len(values) > 1 else values
+    best = (-1.0, 0.0, 1)
+    for t in candidates:
+        for sign in (1, -1):
+            score = balanced_accuracy(y, (sign * (x - t) > 0).astype(int))
+            if score > best[0]:
+                best = (score, float(t), sign)
+    return best[1], best[2]
+
+
+def balanced_accuracy(y: np.ndarray, predicted: np.ndarray) -> float:
+    return float(np.mean([(predicted[y == k] == k).mean() for k in (0, 1)]))
+
+
+def cohens_d(x: np.ndarray, y: np.ndarray) -> float:
+    a, b = x[y == 0], x[y == 1]
+    pooled = math.sqrt((a.var(ddof=1) * (len(a) - 1) + b.var(ddof=1) * (len(b) - 1)) / (len(a) + len(b) - 2))
+    return float((a.mean() - b.mean()) / pooled)
+
+
+def augment_extents(extents: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """The training augmentation's effect on bounding-box extents: an independent U(0.8, 1.25) scale per axis
+    (shift does not change extents; the ±0.03 jitter is ignored)."""
+    return extents * rng.uniform(0.8, 1.25, size=extents.shape)
+
+
+def probe(out: Path, data_dir: Path | None = None, augment_draws: int = 20) -> dict:
+    data_dir = (data_dir or dataset.data_dir_from_env()).resolve()
+    with np.load(dataset.cache_path(data_dir), allow_pickle=False) as cache:
+        classes = json.loads(str(cache["meta"]))["classes"]
+        splits = {split: {"points": cache[f"{split}_points"], "labels": cache[f"{split}_labels"],
+                          "files": cache[f"{split}_files"]} for split in ("train", "test")}
+    mesh_root = data_dir / "ModelNet10"
+    report = {"note": "post-hoc probe (not pre-registered); train = official training pool (train + validation), "
+                      "test = official test split; balanced accuracy of the best 1-D threshold chosen on train",
+              "pairs": {}}
+    rng = np.random.default_rng(0)
+    for a, b in PROBE_PAIRS:
+        pair = {}
+        features = {}
+        for split, d in splits.items():
+            keep = np.isin(d["labels"], [classes.index(a), classes.index(b)])
+            y = (d["labels"][keep] == classes.index(b)).astype(int)            # 0 = first class, 1 = second
+            pts = d["points"][keep]
+            extent = pts.max(axis=1) - pts.min(axis=1)                          # normalised input: (x, y, z) extents
+            raw_extent = np.stack([np.ptp(read_off_vertices(mesh_root / f), axis=0) for f in d["files"][keep]])
+            features[split] = {"y": y, "extent": extent, "raw_extent": raw_extent}
+        def feats(e: np.ndarray, raw_e: np.ndarray | None = None) -> dict:
+            f = {"log height/width (z/x)": np.log(e[:, 2] / e[:, 0]), "log height/depth (z/y)": np.log(e[:, 2] / e[:, 1]),
+                 "log width/depth (x/y)": np.log(e[:, 0] / e[:, 1])}
+            if raw_e is not None:
+                f["log absolute size (raw bbox diagonal)"] = np.log(np.linalg.norm(raw_e, axis=1))
+                f["log absolute height (raw z extent)"] = np.log(raw_e[:, 2])
+            return f
+        train, test = features["train"], features["test"]
+        clean_train, clean_test = feats(train["extent"], train["raw_extent"]), feats(test["extent"], test["raw_extent"])
+        for name in clean_train:
+            t, sign = best_stump(clean_train[name], train["y"])
+            row = {"test_balanced_accuracy": balanced_accuracy(test["y"], (sign * (clean_test[name] - t) > 0).astype(int)),
+                   "cohens_d_train": cohens_d(clean_train[name], train["y"]),
+                   "class_means_train": [float(clean_train[name][train["y"] == k].mean()) for k in (0, 1)]}
+            if not name.startswith("log absolute"):
+                scores, ds = [], []
+                for _ in range(augment_draws):  # train and test both see the augmentation, as the network's training data does
+                    aug_train = feats(augment_extents(train["extent"], rng))[name]
+                    aug_test = feats(augment_extents(test["extent"], rng))[name]
+                    ta, sa = best_stump(aug_train, train["y"])
+                    scores.append(balanced_accuracy(test["y"], (sa * (aug_test - ta) > 0).astype(int)))
+                    ds.append(cohens_d(aug_train, train["y"]))
+                row["augmented_test_balanced_accuracy"] = float(np.mean(scores))
+                row["augmented_cohens_d_train"] = float(np.mean(ds))
+            pair[name] = row
+        pair["counts"] = {"train": [int((train["y"] == k).sum()) for k in (0, 1)], "test": [int((test["y"] == k).sum()) for k in (0, 1)]}
+        report["pairs"][f"{a} vs {b}"] = pair
+    noise = np.log(rng.uniform(0.8, 1.25, 100_000)) - np.log(rng.uniform(0.8, 1.25, 100_000))
+    report["augmentation_log_ratio_noise_sd"] = float(noise.std())
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "probe.json").write_text(json.dumps(report, indent=2) + "\n")
+    lines = ["# HW3 post-hoc probe: size and proportion cues for the confused pairs", "",
+             "Not pre-registered; no network is involved. Best single-threshold classifier per feature, chosen on the "
+             "official training pool, scored on the official test split (balanced accuracy; 50% = chance). "
+             f"The per-axis scale augmentation adds noise with SD {report['augmentation_log_ratio_noise_sd']:.3f} "
+             "to every log aspect ratio.", "",
+             "| Pair | Feature | Cohen's d (train) | test bal. acc. | with augmentation: d | with augmentation: bal. acc. |",
+             "|---|---|---:|---:|---:|---:|"]
+    for pair_name, pair in report["pairs"].items():
+        for name, row in pair.items():
+            if name == "counts":
+                continue
+            aug = (f"{row['augmented_cohens_d_train']:+.2f} | {100 * row['augmented_test_balanced_accuracy']:.1f}%"
+                   if "augmented_cohens_d_train" in row else "n/a (removed by normalisation) | n/a")
+            lines.append(f"| {pair_name} | {name} | {row['cohens_d_train']:+.2f} | {100 * row['test_balanced_accuracy']:.1f}% | {aug} |")
+    (out / "probe.md").write_text("\n".join(lines) + "\n")
+    return report
+
+
 # ----------------------------------------------------------------------------- collect
 
 def collect(runs: Path, dest: Path) -> list[str]:
@@ -513,7 +655,14 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("collect")
     p.add_argument("--runs", type=Path, required=True)
     p.add_argument("--dest", type=Path, required=True)
+    p = sub.add_parser("probe")
+    p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--data-dir", type=Path, default=None)
     args = parser.parse_args(argv)
+    if args.command == "probe":
+        probe(args.out, args.data_dir)
+        print((args.out / "probe.md").read_text())
+        return 0
     if args.command == "summarize":
         summary = summarize(args.runs, args.out)
         print((args.out / "summary.md").read_text())
