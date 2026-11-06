@@ -1,18 +1,35 @@
 # HW3 experiments
 
 Design, hypothesis and decision rules were fixed beforehand in
-[`hw3-design.md`](hw3-design.md) (commit `969fcfe`, before any HW3 training).
+[`hw3-design.md`](hw3-design.md) (commit `40c78fb`, before any HW3 training;
+see [commit SHAs](#commit-shas-recorded-in-the-artifacts)).
 This file records how the runs were produced and what they showed.
 
 ## Environment
 
 | Item | Value |
 | --- | --- |
-| Code | branch `feature/hw3-gated-pooling`; every training run executed commit **`14bc0d0`** from a detached Git worktree, so later documentation commits could not change the running code (`git_dirty: false` in every `metrics.json`) |
+| Code | branch `feature/hw3-gated-pooling`; every training run executed commit **`14bc0d0`** (now `74ab502`, same tree; [see below](#commit-shas-recorded-in-the-artifacts)) from a detached Git worktree, so later documentation commits could not change the running code (`git_dirty: false` in every `metrics.json`) |
 | Python / packages | Python 3.12.9 (conda-forge), torch 2.14.1+cu130 executed on CPU, numpy 2.5.4, matplotlib 3.11.2; `pip freeze` identical to the HW2 environment (pins in `backend/requirements-dev.txt`). The HW2 virtual environment could not be reused because its base interpreter was removed from the cluster, so it was rebuilt with the same pins |
 | Hardware | UVA HPC, Slurm `interactive` partition restricted to `rivanna` nodes: **Intel Xeon Gold 6248 @ 2.50 GHz**, 8 CPU threads (`OMP_NUM_THREADS=8`) and 16 GB per run, three runs at a time on one node — the same CPU model and thread count as the HW2 runs. No GPU was used: the development host has none, a GPU job would have started hours later, and CPU execution on the HW2 CPU model makes the E0 rerun directly comparable with HW2 |
 | Data | processed cache `modelnet10_1024pts_seed0_v1.npz` from HW2 (49,267,465 bytes, SHA-256 `a522b3f1e6137005ab4ccd554ff84549e045108e306bae3a5a9ed25214a8002c`), built from `ModelNet10.zip` SHA-256 `9d867943…07d51`; train 3,193 / val 798 / test 908 |
 | Jobs | environment 22556128; verification 22556241 (backend tests, backend smoke, 1-epoch smoke of E0–E3 with `--skip-test`); matrix **22556284** (array 0–11, at most 3 concurrent) |
+
+### Commit SHAs recorded in the artifacts
+
+After all runs and analyses, the HW3 commit messages were rewritten once to
+remove co-author trailers. Only the messages changed: every rewritten commit
+keeps its tree (file contents), parent, author and dates, so each SHA recorded
+at run time still identifies the exact code through its tree. The artifacts
+were not edited and keep the SHAs recorded at run time.
+
+| SHA recorded at run time | Where it is recorded | Commit in this history | Tree (identical) |
+| --- | --- | --- | --- |
+| `14bc0d0` | all 12 training runs: `git_sha` in every `metrics.json`, `summary.json`, `summary_runs.csv` and the bundled E2 checkpoint | `74ab502` | `b3de551463fe` |
+| `a8b6874` | `generated_with` in `results/hw3/summary.json` and `diagnostics.json` | `9c7c2d8` | `85f12000c396` |
+| `969fcfe` | the design-record commit, as cited here before the rewrite | `40c78fb` | `789afbe8bdf2` |
+
+Check with `git rev-parse <commit>^{tree}`.
 
 ## Exact commands
 
@@ -88,7 +105,7 @@ augmentation (per-axis scale U(0.8, 1.25), shift U(−0.1, 0.1), jitter
 
 ## Run directories, seeds and selected epochs
 
-All 12 runs: commit `14bc0d0`, `git_dirty: false`, Intel Xeon Gold 6248, 8 threads.
+All 12 runs: commit `14bc0d0` (tree-identical to `74ab502`), `git_dirty: false`, Intel Xeon Gold 6248, 8 threads.
 Released copies (checkpoint, config, history, metrics, curves, confusion matrix)
 are in [`results/hw3/runs/`](../results/hw3/runs/).
 

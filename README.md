@@ -28,8 +28,7 @@ table/desk difference is not a global statistic.
 
 > **Read first:** [report (PDF, 2 pages)](docs/hw3-report.pdf) ·
 > [design record, written before any result](docs/hw3-design.md) ·
-> [experiment log](docs/hw3-experiments.md) · [video script](docs/hw3-video-script.md) ·
-> [all results](results/hw3/)
+> [experiment log](docs/hw3-experiments.md) · [all results](results/hw3/)
 
 The HW1 point-cloud/Gaussian-splat viewer and the HW2 classifier are unchanged
 and documented [further down](#background-hw1-viewer-and-hw2-classifier).
@@ -260,7 +259,6 @@ for the exact environment, Slurm jobs and commands.
 | [`docs/hw3-design.md`](docs/hw3-design.md) | hypothesis, equations, controls and decision rules, committed before any HW3 run |
 | [`docs/hw3-experiments.md`](docs/hw3-experiments.md) | environment, commands, every run, all aggregate and diagnostic results, interpretation |
 | [`docs/hw3-report.pdf`](docs/hw3-report.pdf) · [`.tex`](docs/hw3-report.tex) | two-page report |
-| [`docs/hw3-video-script.md`](docs/hw3-video-script.md) | ≤ 3-minute video script |
 | [`results/hw3/runs/<condition>_seed<k>/`](results/hw3/runs/) | `best.pt`, `config.json`, `history.json`, `metrics.json`, `curves.png`, `confusion.png` for all 12 runs |
 | [`results/hw3/summary.{json,md}`](results/hw3/summary.md), [`summary_runs.csv`](results/hw3/summary_runs.csv) | aggregates, paired differences, critical pairs, timing, reproduction check |
 | [`results/hw3/diagnostics.{json,md}`](results/hw3/diagnostics.md) | re-scored checkpoints, McNemar tests, gate statistics, gradient participation, point-count robustness |
@@ -982,7 +980,7 @@ neither stored nor logged.
   from global descriptors) are used; no code was taken from either.
 - **AI assistance:** Claude Code (Anthropic) assisted with the implementation,
   experiment orchestration, analysis and documentation of HW3 (design record,
-  pooling modules, tests, Slurm runs, diagnostics, report and video script); the
+  pooling modules, tests, Slurm runs, diagnostics and report); the
   reported numbers come from the runs listed in
   [`docs/hw3-experiments.md`](docs/hw3-experiments.md).
 - **AI assistance (HW2):** Claude Code (Anthropic) assisted with the implementation
