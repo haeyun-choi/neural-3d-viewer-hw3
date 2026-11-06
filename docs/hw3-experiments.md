@@ -328,13 +328,16 @@ moves the result by about 1 pp — HW2's 93.6% seed 0 was a favourable draw.
 (3) The gate may need a different input (e.g. per-object statistics that
 actually vary, such as the normalisation radius) to become data-dependent.
 
-**Next controlled experiment.** E4 = E0 plus one scalar, `log r` (the
-normalisation radius, i.e. absolute size), concatenated to the pooled feature
-before the head (+128 parameters); seeds 0–2; everything else fixed; primary
-outcome: dresser↔night_stand errors. Then E5 = isotropic scale augmentation (one
-factor for all three axes) to test the augmentation explanation separately.
-Caveat for E4: ModelNet's units are per-model CAD units, and a size-aware
-classifier depends on the units of uploaded objects.
+**Possible follow-up direction.** Neither follow-up experiment described here
+was performed in HW3. The analysis points to the input pipeline as a possible
+explanation, and two comparisons could investigate it. E4 could be E0 plus one
+scalar, `log r` (the normalisation radius, i.e. absolute size), concatenated to
+the pooled feature before the head (+128 parameters), with seeds 0–2,
+everything else fixed and dresser↔night_stand errors as the primary outcome. A
+separate comparison, E5, could use isotropic scale augmentation (one factor for
+all three axes) to test the augmentation explanation separately. Caveat for E4:
+ModelNet's units are per-model CAD units, and a size-aware classifier would
+depend on the units of uploaded objects.
 
 ## Environment notes
 

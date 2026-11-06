@@ -237,15 +237,22 @@ move the score, and HW2's 93.6% in seed 0 was a favorable draw. The gate may
 also need inputs that actually vary per object before it can become
 data-dependent.
 
-### 9. Next experiment
+### 9. Possible follow-up direction
 
-The probe suggests the next test. **E4** adds one scalar to E0: `log r`, the
-normalization radius (absolute size), concatenated to the pooled feature (+128
-parameters). It uses seeds 0–2 with everything else fixed, and its primary
-outcome is dresser↔night-stand errors. **E5** would then use isotropic scale
-augmentation (one factor for all axes) to test the augmentation explanation on
-its own. ModelNet units are per-model CAD units, so a size-aware classifier
-would also depend on the units of uploaded objects.
+The analysis points to a useful direction for future work. The experiments
+described here were not performed in HW3. A model could preserve
+class-relevant scale and proportion information, for example by passing the
+normalization radius to the classifier, and then test whether those cues
+reduce the remaining confusions.
+
+One possible follow-up could add one scalar to E0: `log r`, the normalization
+radius (absolute size), concatenated to the pooled feature (+128 parameters).
+It could use seeds 0–2 with everything else fixed and take dresser↔night-stand
+errors as the primary outcome. A separate comparison could replace the
+per-axis scale augmentation with isotropic scaling (one factor for all axes)
+to test the augmentation explanation on its own. ModelNet units are per-model
+CAD units, so a size-aware classifier would also depend on the units of
+uploaded objects.
 
 ### 10. Reproduce
 

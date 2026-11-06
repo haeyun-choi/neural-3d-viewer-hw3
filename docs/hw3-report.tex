@@ -110,7 +110,7 @@ E3 max pool, $h{=}69$ & 88{,}537 & 97.41 & \textbf{91.81}\,$\pm$\,0.34 & 19.7 & 
 \end{itemize}
 \textbf{Exploratory} (not a confirmatory test): with one fixed 256-point subset per object, E2 scores 90.75\% vs.\ 89.61\% for E0 and is higher in each seed (c). A max over fewer points can only shrink, while a mean does not, so the proposed pooling \emph{may} be more robust when fewer points are available.
 
-\section{Failure analysis and next experiment}
+\section{Failure analysis and possible follow-up}
 \textbf{Why pooling may not have helped these pairs.} After seeing the results, I ran a post-hoc probe (not pre-registered; no network, no retraining). For each pair it takes the best threshold on one global feature, chosen on the training pool, and scores it on the test split as balanced accuracy (50\% = chance).
 \begin{center}\small
 \begin{tabular}{llrl}
@@ -128,7 +128,7 @@ Absolute size never reaches the network, so no aggregator can use it. Within the
 
 \textbf{Seed variability and other caveats.} Paired runs that differ only in pooling still flip 15--39 test objects, so three seeds resolve about 1\,pp, not 0.1\,pp. E3 shows that changing width and initialization alone moves the score by $\sim$1\,pp, and HW2's 93.6\% in seed~0 was a favorable draw. The gate may also need an input that truly varies per object (e.g.\ the normalization radius) to become data-dependent.
 
-\textbf{Next controlled experiment.} \emph{E4} adds one scalar to E0: $\log r$ (the normalization radius, i.e.\ absolute size), concatenated to the pooled feature (+128 parameters). It uses seeds 0--2 with everything else fixed, and its primary outcome is dresser$\leftrightarrow$night-stand errors. \emph{E5} then uses isotropic scale augmentation (one factor for all axes) to test the augmentation explanation alone. ModelNet sizes are per-model CAD units, so a size-aware model depends on input units.
+\textbf{Possible follow-up.} The analysis points to a useful direction for future work; HW3 did not test it. A model could preserve class-relevant scale and proportion information and then test whether those cues reduce the remaining confusions. Two comparisons could investigate the input-pipeline explanation: passing $\log r$, the normalization radius, to the classifier (+128 parameters), and replacing the per-axis scale augmentation with an isotropic one. ModelNet sizes are per-model CAD units, so a size-aware model would also depend on input units.
 
 \textbf{Lesson.} A well-motivated module can train correctly and still leave the target errors unchanged. The controls (E1, E3) and gate statistics let me separate a weak hypothesis from a broken implementation. The probe suggests that the input pipeline, not the aggregation, may be the limit, and the 256-point test hints at a benefit that clean accuracy hides.
 
