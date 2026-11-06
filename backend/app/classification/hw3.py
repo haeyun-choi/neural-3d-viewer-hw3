@@ -162,7 +162,7 @@ def summarize(runs: Path, out: Path) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     with (out / "summary_runs.csv").open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     (out / "summary.md").write_text(markdown_summary(summary))
