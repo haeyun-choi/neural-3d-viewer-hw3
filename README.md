@@ -1,30 +1,36 @@
 # Neural 3D Data Viewer · DS 7400 HW3: Residual Gated Dual Pooling
 
-**HW3 asks whether a hypothesis-driven change to my HW2 network fixes the errors
-it actually makes.** The HW2 Mini-PointNet classifies ModelNet10 point clouds
-with a single global *max* pool, and most of its test errors are between
-look-alike pairs (table/desk, dresser/night stand). I hypothesised that max
-pooling — which keeps only the strongest point per feature channel — throws
-away *how much* of an object shows a feature, and designed **Residual Gated
-Dual Pooling**: keep the max-pooled vector as an identity path (ResNet idea) and
-let an SE-style channel gate (SENet idea) add a learned, per-channel correction
-toward the mean-pooled vector. I tested it against the unchanged baseline, a
-fixed 50/50 max+mean pool and a parameter-matched wider baseline, 3 seeds each,
-with everything else held fixed.
+My HW2 Mini-PointNet classifies ModelNet10 point clouds with a single global
+*max* pool and reaches 92.77% mean test accuracy over three seeds. When I looked
+at its test errors, I noticed that most were between look-alike pairs: tables
+called desks, and dressers and night stands confused in both directions. These
+pairs often differ in the
+relative extent of their parts. Global max pooling records whether a channel
+responds strongly somewhere, but not how widely that response appears across
+the surface. I therefore suspected that the model was losing prevalence
+information that could help with these pairs. Mean pooling keeps that
+information, but replacing max pooling entirely could weaken the strong local
+features that PointNet uses well. To test this idea, I designed **Residual
+Gated Dual Pooling**. It keeps the max-pooled vector as an identity path (the
+ResNet idea) and uses an SE-style channel gate (the SENet idea) to add a
+learned, per-channel correction toward the mean-pooled vector. I compared it
+with the unchanged baseline, a fixed 50/50 max+mean pool and a
+parameter-matched wider baseline. Each model ran with three seeds, and
+everything else was held fixed.
 
-**Result — the hypothesis is not supported.** Implementation and training
+**Result: the hypothesis is not supported.** Implementation and training
 completed normally, and the rerun baseline reproduces HW2 exactly. The proposed
 module matches the baseline (**92.77% vs 92.77%** mean test accuracy over 3
 seeds; paired difference **+0.00 pp**) and does not consistently reduce the
-targeted confusions. **The learned gate did not behave as hypothesized:**
-instead of an object-adaptive mixture, optimization produced an almost static
-per-channel split — 20–32% of the channels moved toward mean pooling and 43–63%
-toward pure max pooling. *Exploratory* evidence suggests that the proposed
-pooling may be more robust when fewer points are available (+1.1 pp at 256
-points). A post-hoc probe without retraining suggests why the target pairs did
-not improve: the strongest dresser/night-stand cue it found (absolute size) is
-removed by the normalisation before the network sees the points, and the
-table/desk difference is not a global statistic.
+targeted confusions. **The learned gate did not behave as hypothesized.**
+Optimization did not produce an object-adaptive mixture. It produced an almost
+static per-channel split, in which 20–32% of the channels moved toward mean
+pooling and 43–63% toward pure max pooling. *Exploratory* evidence suggests
+that the proposed pooling may be more robust when fewer points are available
+(+1.1 pp at 256 points). A post-hoc probe, run without retraining, points to a
+reason the target pairs did not improve. The strongest dresser/night-stand cue
+it found (absolute size) is removed by normalization before the network sees
+the points, and the table/desk difference is not a global statistic.
 
 > **Read first:** [report (PDF, 2 pages)](docs/hw3-report.pdf) ·
 > [design record, written before any result](docs/hw3-design.md) ·
@@ -40,17 +46,17 @@ and documented [further down](#background-hw1-viewer-and-hw2-classifier).
 - **Task:** ModelNet10, one of 10 furniture classes per object (official split;
   3,193 train / 798 validation / 908 test).
 - **Input:** each CAD mesh becomes **1,024 points sampled on its surface**
-  (triangles chosen with probability ∝ area). Each point is only `[x, y, z]` —
-  no colour, normal or connectivity. A batch is a tensor of shape
+  (triangles chosen with probability ∝ area). Each point is only `[x, y, z]`,
+  with no color, normal or connectivity. A batch is a tensor of shape
   **`(B, 1024, 3)`**: **B** objects per batch (32 in training), **1,024** points
   per object, **3** coordinates `x, y, z` per point. The class label is stored
   separately (one integer per object).
-- **Normalisation:** `μ = mean(p_i)`, `q_i = p_i − μ`, `r = max‖q_i‖`,
-  `p̂_i = q_i / r` — translation and **absolute size are removed**; relative
-  proportions are kept.
+- **Normalization:** `μ = mean(p_i)`, `q_i = p_i − μ`, `r = max‖q_i‖`,
+  `p̂_i = q_i / r`. This removes translation and **absolute size** but keeps
+  relative proportions.
 - **Training-only augmentation:** independent per-axis scale U(0.8, 1.25),
   shift U(−0.1, 0.1), jitter N(0, 0.01²) clipped at ±0.03, no rotation. The
-  per-axis scale changes aspect ratios by up to 1.56× — relevant below.
+  per-axis scale changes aspect ratios by up to 1.56×, which matters in §8.
 
 ### 2. Baseline: HW2 Mini-PointNet (76,362 parameters)
 
@@ -69,20 +75,27 @@ batch 32, checkpoint chosen on validation accuracy, test split scored once.
 ### 3. Observed limitation
 
 HW2 seed-0 test confusion: **12 tables → desk, 4 desks → table, 11 dressers →
-night stand, 11 night stands → dresser** — 38 of its 58 test errors (seeds 1
-and 2: 17/5/10/12 and 19/4/12/11). These pairs differ mainly in *proportion*
-and *extent* (drawers or side panels on a desk; a night stand is a short,
-near-cubic dresser).
+night stand, 11 night stands → dresser**. These are 38 of its 58 test errors
+(seeds 1 and 2: 17/5/10/12 and 19/4/12/11). The pairs often differ in the
+relative extent of their parts. A desk has drawers or side panels, and a night
+stand is a short, nearly cubic dresser.
 
-Global max pooling `m_c = max_i h_{i,c}` is permutation-invariant and keeps
-strong local evidence, but it
+The error pattern led me to examine the aggregation step. Global max pooling
+`m_c = max_i h_{i,c}` is permutation-invariant and keeps strong local evidence.
+It records whether a channel responds strongly somewhere, but not how widely
+that response appears across the surface. In particular, it
 
 - ignores **prevalence**: a feature on one point or on 900 points gives the same `m_c`;
 - ignores the **distribution** of surface features (how much is top, legs, drawer front);
 - sends gradient through pooling to **one point per channel** (`∂m_c/∂h_{i,c} = 1[i = argmax]`).
 
-Hypothesis (a hypothesis, not a known cause): *a learned, channel-wise blend of
-max and mean statistics helps the proportion-defined pairs.*
+I suspected that the network was discarding this prevalence information and
+that it could help separate these pairs. Mean pooling keeps it. Replacing max
+pooling with mean pooling, however, could weaken the strong local evidence that
+PointNet depends on. My hypothesis was therefore that *a learned, channel-wise
+blend of max and mean statistics helps the proportion-defined pairs.* I had no
+direct evidence that max pooling caused these errors, so the experiments test
+the idea instead of assuming it.
 
 ### 4. Two ideas from class
 
@@ -91,9 +104,11 @@ max and mean statistics helps the proportion-defined pairs.*
 - **SENet** (Hu et al., CVPR 2018): squeeze global information and learn a
   *data-dependent, channel-wise* recalibration with a bottleneck MLP + sigmoid.
 
-The module below borrows these two principles; it is not a ResNet or an SENet,
-and mixing max and mean statistics is not new in general — the HW3 work is the
-hypothesis-driven adaptation and its controlled test.
+ResNet motivated keeping the max-pooled path, which already works, as the
+identity. SENet motivated learning the move toward the mean with a channel-wise
+gate. The module is not a ResNet or an SENet, and mixing max and mean
+statistics is not new in general. My part was adapting these principles to the
+errors I observed and testing the result under controlled conditions.
 
 ### 5. Proposed: Residual Gated Dual Pooling (E2)
 
@@ -103,11 +118,11 @@ g = σ( W₂ ReLU( W₁ [m; a] + b₁ ) + b₂ )            W₁: 512→16, W₂
 z = m + g ⊙ (a − m)  =  (1 − g) ⊙ m + g ⊙ a         → unchanged head
 ```
 
-`m` is the identity path, `g ⊙ (a − m)` the learned correction; `g → 0` is max
-pooling, `g → 1` mean pooling, per channel and per object. **Baseline-preserving
-initialisation:** `W₂ = 0`, `b₂ = −2`, so training starts at `g = σ(−2) ≈ 0.119`
-everywhere — close to max pooling but not saturated. The gate adds 12,560
-parameters (88,922 in total). Code:
+`m` is the identity path and `g ⊙ (a − m)` is the learned correction. Per
+channel and per object, `g → 0` gives max pooling and `g → 1` gives mean
+pooling. **Baseline-preserving initialization:** `W₂ = 0` and `b₂ = −2`, so
+training starts at `g = σ(−2) ≈ 0.119` everywhere. That is close to max pooling
+but not saturated. The gate adds 12,560 parameters (88,922 in total). Code:
 [`backend/app/classification/models.py`](backend/app/classification/models.py)
 (`ResidualGatedDualPool`).
 
@@ -120,16 +135,16 @@ parameters (88,922 in total). Code:
 | E2 | `mini_pointnet_gated_dual` | residual gated dual | 88,922 | does learned channel-wise selection help? |
 | E3 | `mini_pointnet`, h = 69 | max | 88,537 | are E2's extra parameters enough to explain it? |
 
-Seeds 0, 1, 2 for each (12 runs). Identical for all runs: data cache and the
+I ran seeds 0, 1 and 2 for each condition (12 runs). Identical for all runs: data cache and the
 same 1,024 points per object, splits, augmentation, 60 epochs, batch 32, Adam
 lr 0.001, weight decay 1e-4, cosine schedule, dropout 0.3, validation-based
 checkpoint, one test evaluation, software environment, and CPU model (Intel
-Xeon Gold 6248, 8 threads). For a given seed every condition sees the same
+Xeon Gold 6248, 8 threads). For a given seed, every condition sees the same
 batches and augmentation, and E0/E1/E2 start from identical shared weights with
-the same dropout random stream — only the pooling differs. No per-model tuning;
-the test split informs no decision.
+the same dropout random stream. Only the pooling differs. I did no per-model
+tuning, and the test split informed no decision.
 
-### 7. Results — official test split (908 objects), seeds 0–2
+### 7. Results on the official test split (908 objects), seeds 0–2
 
 | Model | Params | Val acc | **Test acc** | table→desk | desk→table | dresser→night | night→dresser |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -150,85 +165,87 @@ in code, data or environment.
 
 ![Test accuracy per seed and critical directional errors](results/hw3/results.png)
 
-### 8. Analysis — what the evidence says
+### 8. Analysis
 
 **Confirmatory findings** (decision rules fixed in advance,
 [design §9](docs/hw3-design.md#9-pre-registered-expectations-and-decision-rules)):
 
 - **The hypothesis is not supported.** E2 did not improve clean test accuracy
-  over E0 (+0.00 pp); mean information alone did not help (E1 −0.11 pp); learned
-  selection did not beat fixed mixing (E2 − E1 +0.11 pp).
+  over E0 (+0.00 pp). Mean information alone did not help (E1 −0.11 pp), and
+  learned selection did not beat fixed mixing (E2 − E1 +0.11 pp).
 - **Added parameters alone did not help.** The wider E3 performed worse
   (−0.95 pp), so E2's +0.95 pp over E3 reflects E3's deficit, not a gain of E2.
 - **Errors were redistributed, not consistently reduced.** E1 lowered
-  table→desk (16.0 → 11.3) but not the other three directions; E2 lowered
+  table→desk (16.0 → 11.3) but not the other three directions. E2 lowered
   dresser→night stand (11.0 → 8.3) but raised night stand→dresser
   (11.3 → 15.3). Four-direction total: E0 42.7, E1 40.0 (per seed −1, 0, −7),
   E2 44.7 (per seed +10, −1, −3).
-- **The learned gate did not behave as hypothesized.** The implementation and
-  training worked as designed (tests pass, all gradients finite, the gate moved
-  away from its initialisation). But instead of an object-adaptive mixture,
-  optimization produced an almost static, bimodal per-channel split: from
-  g = 0.119 everywhere, 52–83 of 256 channels moved toward mean pooling (mean
-  g > 0.5) and 110–160 toward pure max pooling (mean g < 0.1). A channel's gate
-  barely varies across objects (SD 0.006–0.017, versus 0.27–0.42 across
-  channels), and the class-average gate differs by < 0.01 between table, desk,
-  dresser and night stand. L2 weight decay pulls every gate toward 0.5, so it
-  cannot produce this two-sided split. What failed is the adaptive-mixture
-  hypothesis, not the implementation.
+- **The learned gate did not behave as hypothesized.** The module itself worked
+  as designed: the tests pass, all gradients are finite, and the gate moved
+  away from its initialization. Optimization, however, did not produce an
+  object-adaptive mixture. It produced an almost static, bimodal per-channel
+  split. Starting from g = 0.119 everywhere, 52–83 of 256 channels moved toward
+  mean pooling (mean g > 0.5) and 110–160 toward pure max pooling (mean
+  g < 0.1). A channel's gate barely varies across objects (SD 0.006–0.017,
+  versus 0.27–0.42 across channels), and the class-average gate differs by
+  < 0.01 between table, desk, dresser and night stand. L2 weight decay pulls
+  every gate toward 0.5, so it cannot produce this two-sided split. The
+  object-dependent behavior that the hypothesis relied on did not appear.
 
 ![E2 gate distribution and per-channel mean gate](results/hw3/gates.png)
 
 **Exploratory findings** (not confirmatory tests):
 
-- **Fewer points.** Exploratory evidence suggests that the proposed pooling may
-  be more robust when fewer points are available. On one fixed 256-point subset
-  per test object (same checkpoints, no retraining), E2 scores 90.75 ± 0.18%
-  versus 89.61 ± 0.54% for E0, higher in each of the three seeds (by 0.22–1.98
-  pp). The direction was written down beforehand as a secondary prediction (a
-  channel max over fewer points can only shrink; a mean does not), but one
-  subsample per point count and three seeds do not establish robustness.
+- **Fewer points.** On one fixed 256-point subset per test object (same
+  checkpoints, no retraining), E2 scores 90.75 ± 0.18% versus 89.61 ± 0.54% for
+  E0. It is higher in each of the three seeds, by 0.22–1.98 pp. I wrote this
+  direction down beforehand as a secondary prediction, because a channel max
+  over fewer points can only shrink while a mean does not. The proposed pooling
+  may therefore be more robust when fewer points are available. One subsample
+  per point count and three seeds are not enough to establish this.
 - **Gradient participation.** Max pooling sends gradient to ≈ 13% of the points
   (≈ 134 of 1,024). Dual pooling reaches 100%, but the mean spreads 1/N per
-  point, so the argmax points still carry 91–96% of the gradient norm — the
-  "ignored points" argument holds in support but is weak in magnitude.
+  point, so the argmax points still carry 91–96% of the gradient norm. Many
+  more points receive gradient, but the added gradient is small.
 
 <img src="results/hw3/robustness.png" alt="Accuracy with 1024, 512 and 256 points" width="460">
 
-**Alternative-explanation probe** (post-hoc, no network, no retraining; best
-single threshold chosen on the training pool, balanced accuracy on the test
-split, 50% = chance):
+**Post-hoc probe of other explanations** (no network, no retraining). For each
+pair, I chose the best single threshold on one global feature using the
+training pool and measured balanced accuracy on the test split (50% = chance):
 
 | Pair | Cue | Separability | Affected by |
 |---|---|---:|---|
-| dresser vs night stand | absolute height (raw mesh units) | **85.5%** | unit-sphere normalisation (never in the input) |
+| dresser vs night stand | absolute height (raw mesh units) | **85.5%** | unit-sphere normalization (never in the input) |
 | dresser vs night stand | depth/width ratio | 81.4% → **73.3%** with augmentation | per-axis scale augmentation (training only) |
-| table vs desk | any size or bounding-box ratio | 42–56% | — (not a global cue) |
+| table vs desk | any size or bounding-box ratio | 42–56% | n/a (not a global cue) |
 
-Absolute size never reaches the network, so no pooling can use it; this is
-consistent with the dresser/night-stand confusion, since absolute height alone
-separates the pair nearly as well (85.5%) as the network does within the pair
-(≈ 87%). The depth/width cue does reach the network at test time but is
-perturbed during training, which may teach the network to discount it. No global
-size or ratio separates table from desk, which suggests that the difference is
-local structure (drawers, panels) — what max pooling already targets — or label
-ambiguity. These probes are diagnostics, not proof of cause.
+Absolute size never reaches the network, so no pooling method can use it.
+Absolute height alone separates dressers from night stands nearly as well
+(85.5%) as the network does within that pair (≈ 87%), which is consistent with
+the remaining confusion. The depth/width cue does reach the network at test
+time, but it is perturbed during training, which may teach the network to
+discount it. No global size or ratio separates table from desk. That
+difference may lie in local parts such as drawers and side panels, which max
+pooling can already detect, or in ambiguous labels. These probes are
+diagnostics and do not establish a cause.
 
-**Alternative explanations kept open.** Seed variability is large: paired runs
-that differ only in pooling still flip 15–39 test objects, so three seeds
-resolve about 1 pp, not 0.1 pp; E3's −0.95 pp shows how much a change of
-initialisation alone can move the score (HW2's 93.6% seed 0 was a favourable
-draw). The gate may also need inputs that actually vary per object to become
+**Seed variability and other caveats.** Paired runs that differ only in pooling
+still flip 15–39 test objects, so three seeds resolve about 1 pp, not 0.1 pp.
+E3's −0.95 pp shows how far a change of width and initialization alone can
+move the score, and HW2's 93.6% in seed 0 was a favorable draw. The gate may
+also need inputs that actually vary per object before it can become
 data-dependent.
 
 ### 9. Next experiment
 
-**E4:** E0 plus one scalar — `log r`, the normalisation radius (absolute size) —
-concatenated to the pooled feature (+128 parameters), seeds 0–2, everything
-else fixed, primary outcome dresser↔night-stand errors. Then **E5:** isotropic
-scale augmentation (one factor for all axes) to test the augmentation
-explanation on its own. (Caveat: ModelNet units are per-model CAD units, and a
-size-aware classifier depends on the units of uploaded objects.)
+The probe suggests the next test. **E4** adds one scalar to E0: `log r`, the
+normalization radius (absolute size), concatenated to the pooled feature (+128
+parameters). It uses seeds 0–2 with everything else fixed, and its primary
+outcome is dresser↔night-stand errors. **E5** would then use isotropic scale
+augmentation (one factor for all axes) to test the augmentation explanation on
+its own. ModelNet units are per-model CAD units, so a size-aware classifier
+would also depend on the units of uploaded objects.
 
 ### 10. Reproduce
 
@@ -249,8 +266,8 @@ A single run (from `backend/`), e.g. the proposed model with seed 1:
 `python -m app.classification.training train --model mini_pointnet_gated_dual --seed 1 --out data/experiments/hw3/e2_gated_dual_seed1`
 (all other defaults are the HW2 protocol). One run takes 5–12 minutes on 8 CPU
 threads. The reported runs used an Intel Xeon Gold 6248 with 8 threads, the same
-CPU and package versions as HW2 — see [`docs/hw3-experiments.md`](docs/hw3-experiments.md)
-for the exact environment, Slurm jobs and commands.
+CPU and package versions as HW2. [`docs/hw3-experiments.md`](docs/hw3-experiments.md)
+lists the exact environment, Slurm jobs and commands.
 
 ### 11. Artifacts
 
