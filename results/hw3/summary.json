@@ -1,0 +1,1030 @@
+{
+  "conditions": {
+    "e0_max": {
+      "id": "E0",
+      "label": "E0 max pooling (HW2)",
+      "model": "mini_pointnet",
+      "hidden_dim": 64,
+      "parameters": 76362,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "test_accuracy": {
+        "mean": 0.9276798825256974,
+        "std": 0.005987337162371528,
+        "sd_sample": 0.007332960482906799,
+        "min": 0.9229074889867841,
+        "max": 0.9361233480176211,
+        "values": [
+          0.9361233480176211,
+          0.9229074889867841,
+          0.9240088105726872
+        ]
+      },
+      "best_val_accuracy": {
+        "mean": 0.9770258980785296,
+        "std": 0.0005907324821942622,
+        "sd_sample": 0.0007234965779318458,
+        "min": 0.9761904761904762,
+        "max": 0.9774436090225563,
+        "values": [
+          0.9774436090225563,
+          0.9774436090225563,
+          0.9761904761904762
+        ]
+      },
+      "best_epoch": [
+        45,
+        40,
+        49
+      ],
+      "train_seconds": {
+        "mean": 400.02312464329106,
+        "std": 58.56396723109363,
+        "sd_sample": 71.72591851462701,
+        "min": 319.9261109996587,
+        "max": 458.3187871556729,
+        "values": [
+          458.3187871556729,
+          421.8244757745415,
+          319.9261109996587
+        ]
+      },
+      "seconds_per_epoch": {
+        "mean": 6.586581530758283,
+        "std": 0.9568403498214288,
+        "sd_sample": 1.1718853111843288,
+        "min": 5.30540303181236,
+        "max": 7.604333109936366,
+        "values": [
+          7.604333109936366,
+          6.850008450526123,
+          5.30540303181236
+        ]
+      },
+      "table->desk": {
+        "mean": 16.0,
+        "std": 2.943920288775949,
+        "sd_sample": 3.605551275463989,
+        "min": 12.0,
+        "max": 19.0,
+        "values": [
+          12.0,
+          17.0,
+          19.0
+        ]
+      },
+      "desk->table": {
+        "mean": 4.333333333333333,
+        "std": 0.4714045207910317,
+        "sd_sample": 0.5773502691896258,
+        "min": 4.0,
+        "max": 5.0,
+        "values": [
+          4.0,
+          5.0,
+          4.0
+        ]
+      },
+      "dresser->night_stand": {
+        "mean": 11.0,
+        "std": 0.816496580927726,
+        "sd_sample": 1.0,
+        "min": 10.0,
+        "max": 12.0,
+        "values": [
+          11.0,
+          10.0,
+          12.0
+        ]
+      },
+      "night_stand->dresser": {
+        "mean": 11.333333333333334,
+        "std": 0.4714045207910317,
+        "sd_sample": 0.5773502691896257,
+        "min": 11.0,
+        "max": 12.0,
+        "values": [
+          11.0,
+          12.0,
+          11.0
+        ]
+      },
+      "critical_total": {
+        "mean": 42.666666666666664,
+        "std": 3.39934634239519,
+        "sd_sample": 4.163331998932266,
+        "min": 38.0,
+        "max": 46.0,
+        "values": [
+          38.0,
+          44.0,
+          46.0
+        ]
+      },
+      "per_class_recall_mean": {
+        "bathtub": 0.9266666666666666,
+        "bed": 0.9966666666666667,
+        "chair": 0.9899999999999999,
+        "desk": 0.8914728682170544,
+        "dresser": 0.8565891472868218,
+        "monitor": 0.9833333333333334,
+        "night_stand": 0.8023255813953488,
+        "sofa": 0.98,
+        "table": 0.84,
+        "toilet": 0.9766666666666666
+      }
+    },
+    "e1_fixed_dual": {
+      "id": "E1",
+      "label": "E1 fixed dual (0.5 max + 0.5 mean)",
+      "model": "mini_pointnet_fixed_dual",
+      "hidden_dim": 64,
+      "parameters": 76362,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "test_accuracy": {
+        "mean": 0.9265785609397944,
+        "std": 0.0025958398721973573,
+        "sd_sample": 0.0031792415704275114,
+        "min": 0.9229074889867841,
+        "max": 0.9284140969162996,
+        "values": [
+          0.9284140969162996,
+          0.9229074889867841,
+          0.9284140969162996
+        ]
+      },
+      "best_val_accuracy": {
+        "mean": 0.9766081871345028,
+        "std": 0.004135127375359925,
+        "sd_sample": 0.005064476045523031,
+        "min": 0.9711779448621554,
+        "max": 0.981203007518797,
+        "values": [
+          0.981203007518797,
+          0.9774436090225563,
+          0.9711779448621554
+        ]
+      },
+      "best_epoch": [
+        37,
+        40,
+        55
+      ],
+      "train_seconds": {
+        "mean": 479.54834733810276,
+        "std": 19.243422230666997,
+        "sd_sample": 23.568282685032298,
+        "min": 453.9795382898301,
+        "max": 500.40374632459134,
+        "values": [
+          500.40374632459134,
+          453.9795382898301,
+          484.26175739988685
+        ]
+      },
+      "seconds_per_epoch": {
+        "mean": 7.915894795178126,
+        "std": 0.3606875883663784,
+        "sd_sample": 0.44175027402632244,
+        "min": 7.434635240103429,
+        "max": 8.30293234262305,
+        "values": [
+          8.30293234262305,
+          7.434635240103429,
+          8.010116802807897
+        ]
+      },
+      "table->desk": {
+        "mean": 11.333333333333334,
+        "std": 3.6817870057290873,
+        "sd_sample": 4.509249752822894,
+        "min": 7.0,
+        "max": 16.0,
+        "values": [
+          7.0,
+          16.0,
+          11.0
+        ]
+      },
+      "desk->table": {
+        "mean": 4.666666666666667,
+        "std": 0.4714045207910317,
+        "sd_sample": 0.5773502691896258,
+        "min": 4.0,
+        "max": 5.0,
+        "values": [
+          5.0,
+          5.0,
+          4.0
+        ]
+      },
+      "dresser->night_stand": {
+        "mean": 11.666666666666666,
+        "std": 1.247219128924647,
+        "sd_sample": 1.5275252316519468,
+        "min": 10.0,
+        "max": 13.0,
+        "values": [
+          13.0,
+          12.0,
+          10.0
+        ]
+      },
+      "night_stand->dresser": {
+        "mean": 12.333333333333334,
+        "std": 1.247219128924647,
+        "sd_sample": 1.5275252316519468,
+        "min": 11.0,
+        "max": 14.0,
+        "values": [
+          12.0,
+          11.0,
+          14.0
+        ]
+      },
+      "critical_total": {
+        "mean": 40.0,
+        "std": 2.943920288775949,
+        "sd_sample": 3.605551275463989,
+        "min": 37.0,
+        "max": 44.0,
+        "values": [
+          37.0,
+          44.0,
+          39.0
+        ]
+      },
+      "per_class_recall_mean": {
+        "bathtub": 0.94,
+        "bed": 0.9966666666666667,
+        "chair": 0.9933333333333333,
+        "desk": 0.8488372093023256,
+        "dresser": 0.8449612403100776,
+        "monitor": 0.9833333333333334,
+        "night_stand": 0.7751937984496124,
+        "sofa": 0.9766666666666666,
+        "table": 0.8866666666666667,
+        "toilet": 0.9833333333333334
+      }
+    },
+    "e2_gated_dual": {
+      "id": "E2",
+      "label": "E2 residual gated dual (proposed)",
+      "model": "mini_pointnet_gated_dual",
+      "hidden_dim": 64,
+      "parameters": 88922,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "test_accuracy": {
+        "mean": 0.9276798825256974,
+        "std": 0.0031579755018511873,
+        "sd_sample": 0.0038677142998725213,
+        "min": 0.9240088105726872,
+        "max": 0.9317180616740088,
+        "values": [
+          0.9317180616740088,
+          0.9240088105726872,
+          0.9273127753303965
+        ]
+      },
+      "best_val_accuracy": {
+        "mean": 0.974937343358396,
+        "std": 0.0017721974465827865,
+        "sd_sample": 0.0021704897337955376,
+        "min": 0.9736842105263158,
+        "max": 0.9774436090225563,
+        "values": [
+          0.9736842105263158,
+          0.9774436090225563,
+          0.9736842105263158
+        ]
+      },
+      "best_epoch": [
+        51,
+        36,
+        46
+      ],
+      "train_seconds": {
+        "mean": 541.1053261559767,
+        "std": 123.65622275631655,
+        "sd_sample": 151.4473246364546,
+        "min": 400.91541648004204,
+        "max": 701.734164475929,
+        "values": [
+          520.6663975119591,
+          701.734164475929,
+          400.91541648004204
+        ]
+      },
+      "seconds_per_epoch": {
+        "mean": 8.982048364404667,
+        "std": 2.0576493870578836,
+        "sd_sample": 2.5200955339211895,
+        "min": 6.650355225165064,
+        "max": 11.655637229115625,
+        "values": [
+          8.64015263893331,
+          11.655637229115625,
+          6.650355225165064
+        ]
+      },
+      "table->desk": {
+        "mean": 16.666666666666668,
+        "std": 0.4714045207910317,
+        "sd_sample": 0.5773502691896258,
+        "min": 16.0,
+        "max": 17.0,
+        "values": [
+          17.0,
+          17.0,
+          16.0
+        ]
+      },
+      "desk->table": {
+        "mean": 4.333333333333333,
+        "std": 0.4714045207910317,
+        "sd_sample": 0.5773502691896258,
+        "min": 4.0,
+        "max": 5.0,
+        "values": [
+          4.0,
+          5.0,
+          4.0
+        ]
+      },
+      "dresser->night_stand": {
+        "mean": 8.333333333333334,
+        "std": 2.0548046676563256,
+        "sd_sample": 2.5166114784235836,
+        "min": 6.0,
+        "max": 11.0,
+        "values": [
+          8.0,
+          6.0,
+          11.0
+        ]
+      },
+      "night_stand->dresser": {
+        "mean": 15.333333333333334,
+        "std": 2.8674417556808756,
+        "sd_sample": 3.511884584284246,
+        "min": 12.0,
+        "max": 19.0,
+        "values": [
+          19.0,
+          15.0,
+          12.0
+        ]
+      },
+      "critical_total": {
+        "mean": 44.666666666666664,
+        "std": 2.357022603955158,
+        "sd_sample": 2.8867513459481287,
+        "min": 43.0,
+        "max": 48.0,
+        "values": [
+          48.0,
+          43.0,
+          43.0
+        ]
+      },
+      "per_class_recall_mean": {
+        "bathtub": 0.94,
+        "bed": 0.9966666666666667,
+        "chair": 0.9866666666666667,
+        "desk": 0.868217054263566,
+        "dresser": 0.8837209302325583,
+        "monitor": 0.9866666666666667,
+        "night_stand": 0.7868217054263567,
+        "sofa": 0.98,
+        "table": 0.8333333333333334,
+        "toilet": 0.9866666666666667
+      }
+    },
+    "e3_max_h69": {
+      "id": "E3",
+      "label": "E3 max pooling, h=69 (parameter-matched)",
+      "model": "mini_pointnet",
+      "hidden_dim": 69,
+      "parameters": 88537,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "test_accuracy": {
+        "mean": 0.9181350954478708,
+        "std": 0.0034044120761731566,
+        "sd_sample": 0.004169536230396665,
+        "min": 0.9151982378854625,
+        "max": 0.9229074889867841,
+        "values": [
+          0.9162995594713657,
+          0.9151982378854625,
+          0.9229074889867841
+        ]
+      },
+      "best_val_accuracy": {
+        "mean": 0.9741019214703425,
+        "std": 0.0011814649643885767,
+        "sd_sample": 0.0014469931558637556,
+        "min": 0.9724310776942355,
+        "max": 0.974937343358396,
+        "values": [
+          0.974937343358396,
+          0.9724310776942355,
+          0.974937343358396
+        ]
+      },
+      "best_epoch": [
+        42,
+        33,
+        49
+      ],
+      "train_seconds": {
+        "mean": 493.08405643484247,
+        "std": 48.07081854428465,
+        "sd_sample": 58.87448847570831,
+        "min": 431.4149230159819,
+        "max": 548.6955051273108,
+        "values": [
+          499.1417411612347,
+          548.6955051273108,
+          431.4149230159819
+        ]
+      },
+      "seconds_per_epoch": {
+        "mean": 8.189128102857568,
+        "std": 0.7995590852131698,
+        "sd_sample": 0.9792558889893802,
+        "min": 7.16512516278696,
+        "max": 9.116467483714223,
+        "values": [
+          8.28579166207152,
+          9.116467483714223,
+          7.16512516278696
+        ]
+      },
+      "table->desk": {
+        "mean": 19.666666666666668,
+        "std": 0.9428090415820634,
+        "sd_sample": 1.1547005383792515,
+        "min": 19.0,
+        "max": 21.0,
+        "values": [
+          19.0,
+          21.0,
+          19.0
+        ]
+      },
+      "desk->table": {
+        "mean": 4.333333333333333,
+        "std": 0.4714045207910317,
+        "sd_sample": 0.5773502691896258,
+        "min": 4.0,
+        "max": 5.0,
+        "values": [
+          4.0,
+          5.0,
+          4.0
+        ]
+      },
+      "dresser->night_stand": {
+        "mean": 15.666666666666666,
+        "std": 0.9428090415820634,
+        "sd_sample": 1.1547005383792517,
+        "min": 15.0,
+        "max": 17.0,
+        "values": [
+          15.0,
+          17.0,
+          15.0
+        ]
+      },
+      "night_stand->dresser": {
+        "mean": 12.0,
+        "std": 0.0,
+        "sd_sample": 0.0,
+        "min": 12.0,
+        "max": 12.0,
+        "values": [
+          12.0,
+          12.0,
+          12.0
+        ]
+      },
+      "critical_total": {
+        "mean": 51.666666666666664,
+        "std": 2.357022603955158,
+        "sd_sample": 2.8867513459481287,
+        "min": 50.0,
+        "max": 55.0,
+        "values": [
+          50.0,
+          55.0,
+          50.0
+        ]
+      },
+      "per_class_recall_mean": {
+        "bathtub": 0.9466666666666667,
+        "bed": 0.9833333333333334,
+        "chair": 0.9866666666666667,
+        "desk": 0.8565891472868218,
+        "dresser": 0.810077519379845,
+        "monitor": 0.9833333333333334,
+        "night_stand": 0.8333333333333334,
+        "sofa": 0.9766666666666666,
+        "table": 0.8033333333333333,
+        "toilet": 0.98
+      }
+    }
+  },
+  "paired_vs": {
+    "E1-E0": {
+      "test_accuracy_diff": {
+        "mean": -0.0011013215859030367,
+        "std": 0.005006674631786256,
+        "sd_sample": 0.00613189907800659,
+        "min": -0.007709251101321479,
+        "max": 0.004405286343612369,
+        "values": [
+          -0.007709251101321479,
+          0.0,
+          0.004405286343612369
+        ]
+      },
+      "wins": 1,
+      "losses": 1,
+      "critical_total_diff": {
+        "mean": -2.6666666666666665,
+        "std": 3.091206165165235,
+        "sd_sample": 3.785938897200183,
+        "min": -7.0,
+        "max": 0.0,
+        "values": [
+          -1.0,
+          0.0,
+          -7.0
+        ]
+      }
+    },
+    "E2-E0": {
+      "test_accuracy_diff": {
+        "mean": 3.700743415417188e-17,
+        "std": 0.0032422029612069548,
+        "sd_sample": 0.003970871448748841,
+        "min": -0.004405286343612258,
+        "max": 0.0033039647577092213,
+        "values": [
+          -0.004405286343612258,
+          0.0011013215859031478,
+          0.0033039647577092213
+        ]
+      },
+      "wins": 2,
+      "losses": 1,
+      "critical_total_diff": {
+        "mean": 2.0,
+        "std": 5.715476066494082,
+        "sd_sample": 7.0,
+        "min": -3.0,
+        "max": 10.0,
+        "values": [
+          10.0,
+          -1.0,
+          -3.0
+        ]
+      }
+    },
+    "E3-E0": {
+      "test_accuracy_diff": {
+        "mean": -0.009544787077826725,
+        "std": 0.007752831160771927,
+        "sd_sample": 0.009495240202920318,
+        "min": -0.01982378854625544,
+        "max": -0.0011013215859031478,
+        "values": [
+          -0.01982378854625544,
+          -0.00770925110132159,
+          -0.0011013215859031478
+        ]
+      },
+      "wins": 0,
+      "losses": 3,
+      "critical_total_diff": {
+        "mean": 9.0,
+        "std": 3.559026084010437,
+        "sd_sample": 4.358898943540674,
+        "min": 4.0,
+        "max": 12.0,
+        "values": [
+          12.0,
+          11.0,
+          4.0
+        ]
+      }
+    },
+    "E2-E1": {
+      "test_accuracy_diff": {
+        "mean": 0.0011013215859030738,
+        "std": 0.0017984506187835516,
+        "sd_sample": 0.0022026431718061845,
+        "min": -0.0011013215859031478,
+        "max": 0.0033039647577092213,
+        "values": [
+          0.0033039647577092213,
+          0.0011013215859031478,
+          -0.0011013215859031478
+        ]
+      },
+      "wins": 2,
+      "losses": 1,
+      "critical_total_diff": {
+        "mean": 4.666666666666667,
+        "std": 4.921607686744467,
+        "sd_sample": 6.027713773341708,
+        "min": -1.0,
+        "max": 11.0,
+        "values": [
+          11.0,
+          -1.0,
+          4.0
+        ]
+      }
+    },
+    "E2-E3": {
+      "test_accuracy_diff": {
+        "mean": 0.009544787077826763,
+        "std": 0.004526001470608634,
+        "sd_sample": 0.005543197089038714,
+        "min": 0.004405286343612369,
+        "max": 0.01541850220264318,
+        "values": [
+          0.01541850220264318,
+          0.008810572687224738,
+          0.004405286343612369
+        ]
+      },
+      "wins": 3,
+      "losses": 0,
+      "critical_total_diff": {
+        "mean": -7.0,
+        "std": 4.08248290463863,
+        "sd_sample": 5.0,
+        "min": -12.0,
+        "max": -2.0,
+        "values": [
+          -2.0,
+          -12.0,
+          -7.0
+        ]
+      }
+    }
+  },
+  "runs": [
+    {
+      "condition": "e0_max",
+      "id": "E0",
+      "model": "mini_pointnet",
+      "hidden_dim": 64,
+      "seed": 0,
+      "parameters": 76362,
+      "best_epoch": 45,
+      "best_val_accuracy": 0.9774436090225563,
+      "test_accuracy": 0.9361233480176211,
+      "test_loss": 0.18422682274805816,
+      "table->desk": 12,
+      "desk->table": 4,
+      "dresser->night_stand": 11,
+      "night_stand->dresser": 11,
+      "critical_total": 38,
+      "train_seconds": 458.3187871556729,
+      "seconds_per_epoch": 7.604333109936366,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-10c1",
+      "slurm_job": "22556284_0",
+      "threads": 8
+    },
+    {
+      "condition": "e0_max",
+      "id": "E0",
+      "model": "mini_pointnet",
+      "hidden_dim": 64,
+      "seed": 1,
+      "parameters": 76362,
+      "best_epoch": 40,
+      "best_val_accuracy": 0.9774436090225563,
+      "test_accuracy": 0.9229074889867841,
+      "test_loss": 0.2113724994239303,
+      "table->desk": 17,
+      "desk->table": 5,
+      "dresser->night_stand": 10,
+      "night_stand->dresser": 12,
+      "critical_total": 44,
+      "train_seconds": 421.8244757745415,
+      "seconds_per_epoch": 6.850008450526123,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-10c1",
+      "slurm_job": "22556284_4",
+      "threads": 8
+    },
+    {
+      "condition": "e0_max",
+      "id": "E0",
+      "model": "mini_pointnet",
+      "hidden_dim": 64,
+      "seed": 2,
+      "parameters": 76362,
+      "best_epoch": 49,
+      "best_val_accuracy": 0.9761904761904762,
+      "test_accuracy": 0.9240088105726872,
+      "test_loss": 0.20872086680408092,
+      "table->desk": 19,
+      "desk->table": 4,
+      "dresser->night_stand": 12,
+      "night_stand->dresser": 11,
+      "critical_total": 46,
+      "train_seconds": 319.9261109996587,
+      "seconds_per_epoch": 5.30540303181236,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-10c1",
+      "slurm_job": "22556284_8",
+      "threads": 8
+    },
+    {
+      "condition": "e1_fixed_dual",
+      "id": "E1",
+      "model": "mini_pointnet_fixed_dual",
+      "hidden_dim": 64,
+      "seed": 0,
+      "parameters": 76362,
+      "best_epoch": 37,
+      "best_val_accuracy": 0.981203007518797,
+      "test_accuracy": 0.9284140969162996,
+      "test_loss": 0.198937481195391,
+      "table->desk": 7,
+      "desk->table": 5,
+      "dresser->night_stand": 13,
+      "night_stand->dresser": 12,
+      "critical_total": 37,
+      "train_seconds": 500.40374632459134,
+      "seconds_per_epoch": 8.30293234262305,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-10c1",
+      "slurm_job": "22556284_1",
+      "threads": 8
+    },
+    {
+      "condition": "e1_fixed_dual",
+      "id": "E1",
+      "model": "mini_pointnet_fixed_dual",
+      "hidden_dim": 64,
+      "seed": 1,
+      "parameters": 76362,
+      "best_epoch": 40,
+      "best_val_accuracy": 0.9774436090225563,
+      "test_accuracy": 0.9229074889867841,
+      "test_loss": 0.1943872216514554,
+      "table->desk": 16,
+      "desk->table": 5,
+      "dresser->night_stand": 12,
+      "night_stand->dresser": 11,
+      "critical_total": 44,
+      "train_seconds": 453.9795382898301,
+      "seconds_per_epoch": 7.434635240103429,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-10c1",
+      "slurm_job": "22556284_5",
+      "threads": 8
+    },
+    {
+      "condition": "e1_fixed_dual",
+      "id": "E1",
+      "model": "mini_pointnet_fixed_dual",
+      "hidden_dim": 64,
+      "seed": 2,
+      "parameters": 76362,
+      "best_epoch": 55,
+      "best_val_accuracy": 0.9711779448621554,
+      "test_accuracy": 0.9284140969162996,
+      "test_loss": 0.19327835784609623,
+      "table->desk": 11,
+      "desk->table": 4,
+      "dresser->night_stand": 10,
+      "night_stand->dresser": 14,
+      "critical_total": 39,
+      "train_seconds": 484.26175739988685,
+      "seconds_per_epoch": 8.010116802807897,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-11c0",
+      "slurm_job": "22556284_9",
+      "threads": 8
+    },
+    {
+      "condition": "e2_gated_dual",
+      "id": "E2",
+      "model": "mini_pointnet_gated_dual",
+      "hidden_dim": 64,
+      "seed": 0,
+      "parameters": 88922,
+      "best_epoch": 51,
+      "best_val_accuracy": 0.9736842105263158,
+      "test_accuracy": 0.9317180616740088,
+      "test_loss": 0.18683704300598952,
+      "table->desk": 17,
+      "desk->table": 4,
+      "dresser->night_stand": 8,
+      "night_stand->dresser": 19,
+      "critical_total": 48,
+      "train_seconds": 520.6663975119591,
+      "seconds_per_epoch": 8.64015263893331,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-10c1",
+      "slurm_job": "22556284_2",
+      "threads": 8
+    },
+    {
+      "condition": "e2_gated_dual",
+      "id": "E2",
+      "model": "mini_pointnet_gated_dual",
+      "hidden_dim": 64,
+      "seed": 1,
+      "parameters": 88922,
+      "best_epoch": 36,
+      "best_val_accuracy": 0.9774436090225563,
+      "test_accuracy": 0.9240088105726872,
+      "test_loss": 0.20847378113196285,
+      "table->desk": 17,
+      "desk->table": 5,
+      "dresser->night_stand": 6,
+      "night_stand->dresser": 15,
+      "critical_total": 43,
+      "train_seconds": 701.734164475929,
+      "seconds_per_epoch": 11.655637229115625,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-1c0",
+      "slurm_job": "22556284_6",
+      "threads": 8
+    },
+    {
+      "condition": "e2_gated_dual",
+      "id": "E2",
+      "model": "mini_pointnet_gated_dual",
+      "hidden_dim": 64,
+      "seed": 2,
+      "parameters": 88922,
+      "best_epoch": 46,
+      "best_val_accuracy": 0.9736842105263158,
+      "test_accuracy": 0.9273127753303965,
+      "test_loss": 0.1952227243767961,
+      "table->desk": 16,
+      "desk->table": 4,
+      "dresser->night_stand": 11,
+      "night_stand->dresser": 12,
+      "critical_total": 43,
+      "train_seconds": 400.91541648004204,
+      "seconds_per_epoch": 6.650355225165064,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-1c1",
+      "slurm_job": "22556284_10",
+      "threads": 8
+    },
+    {
+      "condition": "e3_max_h69",
+      "id": "E3",
+      "model": "mini_pointnet",
+      "hidden_dim": 69,
+      "seed": 0,
+      "parameters": 88537,
+      "best_epoch": 42,
+      "best_val_accuracy": 0.974937343358396,
+      "test_accuracy": 0.9162995594713657,
+      "test_loss": 0.2161165018963919,
+      "table->desk": 19,
+      "desk->table": 4,
+      "dresser->night_stand": 15,
+      "night_stand->dresser": 12,
+      "critical_total": 50,
+      "train_seconds": 499.1417411612347,
+      "seconds_per_epoch": 8.28579166207152,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-10c1",
+      "slurm_job": "22556284_3",
+      "threads": 8
+    },
+    {
+      "condition": "e3_max_h69",
+      "id": "E3",
+      "model": "mini_pointnet",
+      "hidden_dim": 69,
+      "seed": 1,
+      "parameters": 88537,
+      "best_epoch": 33,
+      "best_val_accuracy": 0.9724310776942355,
+      "test_accuracy": 0.9151982378854625,
+      "test_loss": 0.19985306630575708,
+      "table->desk": 21,
+      "desk->table": 5,
+      "dresser->night_stand": 17,
+      "night_stand->dresser": 12,
+      "critical_total": 55,
+      "train_seconds": 548.6955051273108,
+      "seconds_per_epoch": 9.116467483714223,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-11c0",
+      "slurm_job": "22556284_7",
+      "threads": 8
+    },
+    {
+      "condition": "e3_max_h69",
+      "id": "E3",
+      "model": "mini_pointnet",
+      "hidden_dim": 69,
+      "seed": 2,
+      "parameters": 88537,
+      "best_epoch": 49,
+      "best_val_accuracy": 0.974937343358396,
+      "test_accuracy": 0.9229074889867841,
+      "test_loss": 0.20115736402604023,
+      "table->desk": 19,
+      "desk->table": 4,
+      "dresser->night_stand": 15,
+      "night_stand->dresser": 12,
+      "critical_total": 50,
+      "train_seconds": 431.4149230159819,
+      "seconds_per_epoch": 7.16512516278696,
+      "git_sha": "14bc0d0",
+      "git_dirty": false,
+      "host": "udc-aw32-1c0",
+      "slurm_job": "22556284_11",
+      "threads": 8
+    }
+  ],
+  "e0_reproduces_hw2": {
+    "hw2": {
+      "test_accuracy": [
+        0.9361233480176211,
+        0.9229074889867841,
+        0.9240088105726872
+      ],
+      "best_epoch": [
+        45,
+        40,
+        49
+      ],
+      "best_val_accuracy": [
+        0.9774436090225563,
+        0.9774436090225563,
+        0.9761904761904762
+      ]
+    },
+    "hw3_e0": {
+      "test_accuracy": [
+        0.9361233480176211,
+        0.9229074889867841,
+        0.9240088105726872
+      ],
+      "best_epoch": [
+        45,
+        40,
+        49
+      ],
+      "best_val_accuracy": [
+        0.9774436090225563,
+        0.9774436090225563,
+        0.9761904761904762
+      ]
+    },
+    "identical": true
+  },
+  "generated_with": {
+    "git_sha": "a8b6874",
+    "git_dirty": false
+  },
+  "notes": {
+    "std": "population SD over seeds (numpy ddof=0), as in HW2; sd_sample uses ddof=1",
+    "test_objects": 908,
+    "one_object_pp": 0.11013215859030837
+  }
+}

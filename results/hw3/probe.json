@@ -1,0 +1,122 @@
+{
+  "note": "post-hoc probe (not pre-registered); train = official training pool (train + validation), test = official test split; balanced accuracy of the best 1-D threshold chosen on train",
+  "pairs": {
+    "dresser vs night_stand": {
+      "log height/depth (z/x)": {
+        "test_balanced_accuracy": 0.7267441860465116,
+        "cohens_d_train": 1.054334044456482,
+        "class_means_train": [
+          0.6226853132247925,
+          0.28352123498916626
+        ],
+        "augmented_test_balanced_accuracy": 0.681686046511628,
+        "augmented_cohens_d_train": 0.9100223475862521
+      },
+      "log height/width (z/y)": {
+        "test_balanced_accuracy": 0.5174418604651163,
+        "cohens_d_train": 0.03701501712203026,
+        "class_means_train": [
+          0.11009937524795532,
+          0.09791116416454315
+        ],
+        "augmented_test_balanced_accuracy": 0.5005813953488372,
+        "augmented_cohens_d_train": 0.0344733733484229
+      },
+      "log depth/width (x/y)": {
+        "test_balanced_accuracy": 0.813953488372093,
+        "cohens_d_train": -1.3222516775131226,
+        "class_means_train": [
+          -0.5125858783721924,
+          -0.1856100708246231
+        ],
+        "augmented_test_balanced_accuracy": 0.7325581395348838,
+        "augmented_cohens_d_train": -1.0820710686398889
+      },
+      "log absolute size (raw bbox diagonal)": {
+        "test_balanced_accuracy": 0.8372093023255813,
+        "cohens_d_train": 0.7187897268502996,
+        "class_means_train": [
+          4.113412478651836,
+          3.7443445993567184
+        ]
+      },
+      "log absolute height (raw z extent)": {
+        "test_balanced_accuracy": 0.8546511627906976,
+        "cohens_d_train": 0.775232516065997,
+        "class_means_train": [
+          3.703577571434689,
+          3.2877296905476525
+        ]
+      },
+      "counts": {
+        "train": [
+          200,
+          200
+        ],
+        "test": [
+          86,
+          86
+        ]
+      }
+    },
+    "table vs desk": {
+      "log height/depth (z/x)": {
+        "test_balanced_accuracy": 0.4672093023255814,
+        "cohens_d_train": -0.7147562503814697,
+        "class_means_train": [
+          -0.32081007957458496,
+          -0.045662857592105865
+        ],
+        "augmented_test_balanced_accuracy": 0.47335465116279074,
+        "augmented_cohens_d_train": -0.6622325591781136
+      },
+      "log height/width (z/y)": {
+        "test_balanced_accuracy": 0.5086046511627907,
+        "cohens_d_train": -0.27065470814704895,
+        "class_means_train": [
+          -0.7497899532318115,
+          -0.6349917650222778
+        ],
+        "augmented_test_balanced_accuracy": 0.515546511627907,
+        "augmented_cohens_d_train": -0.25331511905162474
+      },
+      "log depth/width (x/y)": {
+        "test_balanced_accuracy": 0.456046511627907,
+        "cohens_d_train": 0.46201592683792114,
+        "class_means_train": [
+          -0.4289798438549042,
+          -0.589328944683075
+        ],
+        "augmented_test_balanced_accuracy": 0.41897674418604647,
+        "augmented_cohens_d_train": 0.4122372772735302
+      },
+      "log absolute size (raw bbox diagonal)": {
+        "test_balanced_accuracy": 0.5176744186046511,
+        "cohens_d_train": -0.3111584322857747,
+        "class_means_train": [
+          4.35137855540225,
+          4.581978196969738
+        ]
+      },
+      "log absolute height (raw z extent)": {
+        "test_balanced_accuracy": 0.555,
+        "cohens_d_train": -0.514613206795201,
+        "class_means_train": [
+          3.3108126753466087,
+          3.6827520477907667
+        ]
+      },
+      "counts": {
+        "train": [
+          392,
+          200
+        ],
+        "test": [
+          100,
+          86
+        ]
+      }
+    }
+  },
+  "augmentation_log_ratio_noise_sd": 0.1815548967353124
+}

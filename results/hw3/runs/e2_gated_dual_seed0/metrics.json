@@ -1,0 +1,237 @@
+{
+  "model": "mini_pointnet_gated_dual",
+  "parameters": 88922,
+  "device": "cpu",
+  "best_epoch": 51,
+  "best_val_accuracy": 0.9736842105263158,
+  "best_val_loss": 0.08808576686011352,
+  "test_accuracy": 0.9317180616740088,
+  "test_error": 0.06828193832599116,
+  "test_loss": 0.18683704300598952,
+  "confusion_matrix": [
+    [
+      48,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      100,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      99,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      78,
+      0,
+      0,
+      1,
+      3,
+      4,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      77,
+      0,
+      8,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      99,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1,
+      19,
+      0,
+      64,
+      0,
+      2,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      98,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      17,
+      0,
+      0,
+      0,
+      0,
+      83,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      100
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "bathtub",
+      "support": 50,
+      "correct": 48,
+      "recall": 0.96,
+      "precision": 1.0
+    },
+    {
+      "class": "bed",
+      "support": 100,
+      "correct": 100,
+      "recall": 1.0,
+      "precision": 0.970873786407767
+    },
+    {
+      "class": "chair",
+      "support": 100,
+      "correct": 99,
+      "recall": 0.99,
+      "precision": 1.0
+    },
+    {
+      "class": "desk",
+      "support": 86,
+      "correct": 78,
+      "recall": 0.9069767441860465,
+      "precision": 0.8041237113402062
+    },
+    {
+      "class": "dresser",
+      "support": 86,
+      "correct": 77,
+      "recall": 0.8953488372093024,
+      "precision": 0.7938144329896907
+    },
+    {
+      "class": "monitor",
+      "support": 100,
+      "correct": 99,
+      "recall": 0.99,
+      "precision": 1.0
+    },
+    {
+      "class": "night_stand",
+      "support": 86,
+      "correct": 64,
+      "recall": 0.7441860465116279,
+      "precision": 0.8648648648648649
+    },
+    {
+      "class": "sofa",
+      "support": 100,
+      "correct": 98,
+      "recall": 0.98,
+      "precision": 0.9702970297029703
+    },
+    {
+      "class": "table",
+      "support": 100,
+      "correct": 83,
+      "recall": 0.83,
+      "precision": 0.9222222222222223
+    },
+    {
+      "class": "toilet",
+      "support": 100,
+      "correct": 100,
+      "recall": 1.0,
+      "precision": 1.0
+    }
+  ],
+  "classes": [
+    "bathtub",
+    "bed",
+    "chair",
+    "desk",
+    "dresser",
+    "monitor",
+    "night_stand",
+    "sofa",
+    "table",
+    "toilet"
+  ],
+  "split_sizes": {
+    "train": 3193,
+    "val": 798,
+    "test": 908
+  },
+  "train_seconds": 520.6663975119591,
+  "torch": "2.14.1+cu130",
+  "git_sha": "14bc0d0",
+  "git_dirty": false,
+  "runtime": {
+    "host": "udc-aw32-10c1",
+    "slurm_job": "22556284_2",
+    "cpu": "Intel(R) Xeon(R) Gold 6248 CPU @ 2.50GHz",
+    "threads": 8,
+    "cuda_device": null,
+    "torch_cuda_build": "13.0",
+    "python": "3.12.9",
+    "numpy": "2.5.4"
+  },
+  "finished_at": "2026-11-06T16:53:52+00:00"
+}
