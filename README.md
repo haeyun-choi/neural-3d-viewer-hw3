@@ -215,7 +215,7 @@ size-aware classifier depends on the units of uploaded objects.)
 cd backend && python -m pip install -r requirements-dev.txt && cd ..   # Python 3.12; pins as in HW2
 export MODELNET10_DATA_DIR=$PWD/backend/data/modelnet10                # Git-ignored
 (cd backend && python -m app.classification.dataset prepare)           # download, verify, sample, cache
-python -m pytest -q backend                                            # 126 tests incl. tests/test_hw3_*.py
+python -m pytest -q backend                                            # 127 tests incl. tests/test_hw3_*.py
 OUT=$PWD/backend/data/experiments/hw3 scripts/hw3/run_matrix.sh        # 12 runs (TASK=i runs one)
 cd backend
 python -m app.classification.hw3 summarize --runs data/experiments/hw3 --out ../results/hw3
@@ -247,6 +247,11 @@ for the exact environment, Slurm jobs and commands.
 | [`backend/app/classification/models.py`](backend/app/classification/models.py) | `GlobalMaxPool`, `FixedDualPool`, `ResidualGatedDualPool`, `MiniPointNet(pooling=…)` |
 | [`backend/app/classification/hw3.py`](backend/app/classification/hw3.py) | aggregation and diagnostics CLI |
 | [`backend/tests/test_hw3_pooling.py`](backend/tests/test_hw3_pooling.py), [`test_hw3_analysis.py`](backend/tests/test_hw3_analysis.py) | HW3 tests |
+| `backend/models/modelnet10/mini_pointnet_gated_dual/` | copy of the E2 seed-0 run, bundled as a third prediction model in the web classifier |
+
+**In the web app:** the classifier panel's *Model* menu now also offers
+*Mini-PointNet + gated dual pooling (HW3 E2, seed 0)*, and *Train a model* offers
+the E1 and E2 pooling variants next to the HW2 architectures.
 
 **References.** K. He, X. Zhang, S. Ren, J. Sun, “Deep Residual Learning for
 Image Recognition,” CVPR 2016 ([paper](https://openaccess.thecvf.com/content_cvpr_2016/html/He_Deep_Residual_Learning_CVPR_2016_paper.html)).
@@ -452,7 +457,8 @@ The **ModelNet10 classifier** panel sits under the existing viewer.
   sample**, or **Upload PLY to classify**; the object opens **in the existing
   point-cloud viewer** (orbit, zoom, orientation controls and the rest unchanged;
   ModelNet samples are turned Z-up). Choose a model — the bundled baseline, the
-  bundled Mini-PointNet, or any run you trained in this backend — and press
+  bundled Mini-PointNet, the bundled HW3 gated-pooling model, or any run you
+  trained in this backend — and press
   **Predict** to see the predicted class, its confidence, the top-3
   probabilities, the true label for a sample, the model's architecture,
   parameter count and configuration, the input's format and point/face counts,

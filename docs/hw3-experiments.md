@@ -295,4 +295,9 @@ classifier depends on the units of uploaded objects.
   prints a `TypeError` traceback while restoring signal handlers *after* the
   test server has shut down (not seen in the HW2 log; environment-related, does
   not affect any result).
-- Pytest: backend suite 126 passed (job 22557828).
+- Final verification (job 22558304, commit `d8fb406`): `npm ci`, `tsc`, ESLint and
+  the production build pass; the complete browser suite passes (139 tests,
+  including the classification spec with the bundled HW3 model and the
+  interactive-training case on the real ModelNet10 cache); sample integrity,
+  backend suite (127 passed), backend smoke, whitespace check and static
+  production smoke pass.
