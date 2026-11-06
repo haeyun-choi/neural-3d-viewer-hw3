@@ -18,6 +18,13 @@ type Input =
   | { kind: "sample"; sample: ClassificationSample }
   | { kind: "upload"; file: File };
 
+const POOLING_HINT: Record<TrainingConfig["model"], string> = {
+  shallow: "max pool",
+  mini_pointnet: "max pool",
+  mini_pointnet_fixed_dual: "pool z = ½·max + ½·mean",
+  mini_pointnet_gated_dual: "gated dual pool z = m + g⊙(mean − m) with a learned per-channel gate g",
+};
+
 const DEFAULT_CONFIG: TrainingConfig = {
   model: "mini_pointnet", epochs: 20, learning_rate: 0.001, hidden_dim: 64, activation: "relu", batch_size: 32,
 };
@@ -248,6 +255,8 @@ export function ClassificationPanel({ onShow, viewerBusy }: {
               <select value={config.model} onChange={(e) => set("model", e.target.value as TrainingConfig["model"])}>
                 <option value="mini_pointnet">Mini-PointNet</option>
                 <option value="shallow">Shallow baseline</option>
+                <option value="mini_pointnet_fixed_dual">Mini-PointNet + fixed dual pooling (HW3 E1)</option>
+                <option value="mini_pointnet_gated_dual">Mini-PointNet + gated dual pooling (HW3 E2)</option>
               </select>
             </label>
             <label>Learning rate
@@ -275,9 +284,9 @@ export function ClassificationPanel({ onShow, viewerBusy }: {
             </label>
           </div>
           <p className="hint">
-            {config.model === "mini_pointnet"
-              ? `Shared MLP 3→${config.hidden_dim}→${config.hidden_dim * 2}→${config.hidden_dim * 4}, max pool, head ${config.hidden_dim * 4}→${config.hidden_dim * 2}→10.`
-              : `Shared 3→${config.hidden_dim} layer, max pool, linear ${config.hidden_dim}→10.`}
+            {config.model === "shallow"
+              ? `Shared 3→${config.hidden_dim} layer, max pool, linear ${config.hidden_dim}→10.`
+              : `Shared MLP 3→${config.hidden_dim}→${config.hidden_dim * 2}→${config.hidden_dim * 4}, ${POOLING_HINT[config.model]}, head ${config.hidden_dim * 4}→${config.hidden_dim * 2}→10.`}
             {" "}Adam with cosine decay; checkpoint chosen on validation accuracy; the test split is scored once at the end.
             {datasetStatus && !datasetStatus.prepared && ` The first run downloads ModelNet10 (${(datasetStatus.download_bytes / 2 ** 20).toFixed(0)} MiB) and preprocesses it.`}
           </p>

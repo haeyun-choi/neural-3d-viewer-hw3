@@ -82,8 +82,10 @@ export interface TrainingRun {
   finished_at: string | null;
 }
 
+export type Architecture = "shallow" | "mini_pointnet" | "mini_pointnet_fixed_dual" | "mini_pointnet_gated_dual";
+
 export interface TrainingConfig {
-  model: "shallow" | "mini_pointnet";
+  model: Architecture;
   epochs: number;
   learning_rate: number;
   hidden_dim: number;

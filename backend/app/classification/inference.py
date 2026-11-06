@@ -25,6 +25,8 @@ INFERENCE_SEED = 0
 BUNDLED_MODELS = {
     "mini_pointnet": "Mini-PointNet (final)",
     "shallow": "Shallow baseline",
+    # HW3: the proposed pooling, run e2_gated_dual_seed0 from results/hw3/runs (a copy).
+    "mini_pointnet_gated_dual": "Mini-PointNet + gated dual pooling (HW3 E2, seed 0)",
 }
 DEFAULT_MODEL = "mini_pointnet"
 

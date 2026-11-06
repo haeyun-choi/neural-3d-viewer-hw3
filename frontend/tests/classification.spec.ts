@@ -21,7 +21,7 @@ function cubeMesh() {
   return Buffer.from(`ply\nformat ascii 1.0\nelement vertex 8\nproperty float x\nproperty float y\nproperty float z\nelement face 6\nproperty list uchar int vertex_indices\nend_header\n${vertices.map((v) => v.join(" ")).join("\n")}\n${faces.map((f) => `4 ${f.join(" ")}`).join("\n")}\n`);
 }
 
-test("a ModelNet10 sample is shown in the viewer and classified by both models", async ({ page, request }) => {
+test("a ModelNet10 sample is shown in the viewer and classified by every bundled model", async ({ page, request }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await ready(page);
@@ -38,7 +38,7 @@ test("a ModelNet10 sample is shown in the viewer and classified by both models",
   await expect.poll(async () => (await snapshot(page)).cameraUp.map((v) => Math.round(v))).toEqual([0, 0, 1]);
   await expect(page.getByTestId("classification-input")).toContainText(`true class ${sample.class.replace("_", " ")}`);
 
-  for (const modelId of ["mini_pointnet", "shallow"]) {
+  for (const modelId of ["mini_pointnet", "shallow", "mini_pointnet_gated_dual"]) {
     await panel(page).getByLabel("Model", { exact: true }).selectOption(modelId);
     await expect(page.getByTestId("prediction")).toHaveCount(0);
     await page.getByTestId("predict-button").click();

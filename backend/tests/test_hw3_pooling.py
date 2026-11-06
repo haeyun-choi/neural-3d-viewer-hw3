@@ -3,12 +3,14 @@
 import json
 import math
 import time
+from pathlib import Path
 
 import pytest
 import torch
 from fastapi.testclient import TestClient
 
 from app.classification import dataset, training
+from app.classification.inference import ModelRegistry, parse_ply, preprocess
 from app.classification.models import (GATE_BIAS, MINI_POINTNET_POOLING, FixedDualPool, GlobalMaxPool, MiniPointNet,
                                        ResidualGatedDualPool, build_model, parameter_count)
 from app.classification.routes import ClassificationSettings
@@ -255,3 +257,30 @@ def test_api_trains_and_serves_a_gated_dual_run(tmp_path, fixture_data):
         result = client.post(f"{api}/predict/sample", json={"sample_id": sample, "model_id": f"run-{run_id}"}).json()
         assert result["model"]["architecture"] == "mini_pointnet_gated_dual"
         assert result["model"]["config"]["gate_hidden"] == 16
+
+
+# ----------------------------------------------------------------------------- bundled HW3 model (web classifier)
+
+BACKEND = Path(__file__).resolve().parents[1]
+BUNDLED = BACKEND / "models" / "modelnet10"
+RELEASED_E2 = BACKEND.parent / "results" / "hw3" / "runs" / "e2_gated_dual_seed0"
+
+
+@pytest.mark.skipif(not (BUNDLED / "mini_pointnet_gated_dual" / "best.pt").exists(), reason="HW3 model not bundled")
+def test_bundled_hw3_model_is_the_released_e2_run_and_classifies_the_samples():
+    bundled = BUNDLED / "mini_pointnet_gated_dual"
+    for name in ("best.pt", "metrics.json", "config.json"):
+        assert (bundled / name).read_bytes() == (RELEASED_E2 / name).read_bytes()
+    registry = ModelRegistry(BUNDLED, BACKEND / "data" / "no-runs")
+    assert [m["id"] for m in registry.available()][:3] == ["mini_pointnet", "shallow", "mini_pointnet_gated_dual"]
+    model, checkpoint = registry.get("mini_pointnet_gated_dual")
+    assert checkpoint["model"] == "mini_pointnet_gated_dual" and checkpoint["model_config"]["gate_hidden"] == 16
+    assert checkpoint["test_accuracy"] == pytest.approx(json.loads((RELEASED_E2 / "metrics.json").read_text())["test_accuracy"])
+    samples = json.loads((BACKEND / "samples" / "modelnet10" / "index.json").read_text())["samples"]
+    hits = 0
+    for entry in samples:
+        points, _ = preprocess(parse_ply((BACKEND / "samples" / "modelnet10" / entry["file"]).read_bytes()))
+        result = registry.predict("mini_pointnet_gated_dual", points)
+        assert sum(result["probabilities"].values()) == pytest.approx(1, abs=1e-5)
+        hits += result["predicted_class"] == entry["class"]
+    assert hits >= 0.8 * len(samples)
