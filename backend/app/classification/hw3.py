@@ -577,8 +577,9 @@ def probe(out: Path, data_dir: Path | None = None, augment_draws: int = 20) -> d
             raw_extent = np.stack([np.ptp(read_off_vertices(mesh_root / f), axis=0) for f in d["files"][keep]])
             features[split] = {"y": y, "extent": extent, "raw_extent": raw_extent}
         def feats(e: np.ndarray, raw_e: np.ndarray | None = None) -> dict:
-            f = {"log height/width (z/x)": np.log(e[:, 2] / e[:, 0]), "log height/depth (z/y)": np.log(e[:, 2] / e[:, 1]),
-                 "log width/depth (x/y)": np.log(e[:, 0] / e[:, 1])}
+            # ModelNet10 axes (checked on per-class median extents): x = depth, y = width, z = height (up).
+            f = {"log height/depth (z/x)": np.log(e[:, 2] / e[:, 0]), "log height/width (z/y)": np.log(e[:, 2] / e[:, 1]),
+                 "log depth/width (x/y)": np.log(e[:, 0] / e[:, 1])}
             if raw_e is not None:
                 f["log absolute size (raw bbox diagonal)"] = np.log(np.linalg.norm(raw_e, axis=1))
                 f["log absolute height (raw z extent)"] = np.log(raw_e[:, 2])
